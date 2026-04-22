@@ -1,5 +1,7 @@
-exports.up = function (knex) {
-  return knex.schema.createTable("notifications", function (table) {
+import type { Knex } from "knex";
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.createTable("notifications", function (table) {
     table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()")); // Dùng UUID làm Khóa chính
     table
       .uuid("userId")
@@ -21,11 +23,12 @@ exports.up = function (knex) {
     table.timestamp("createdAt").notNullable().defaultTo(knex.fn.now());
     table.timestamp("updatedAt").notNullable().defaultTo(knex.fn.now());
   });
-  // .raw(
-  //   "CREATE INDEX idx_noti_user_time ON notifications(userId, createdAt DESC)",
-  // );
-};
 
-exports.down = function (knex) {
-  return knex.schema.dropTableIfExists("notifications");
-};
+  await knex.raw(
+    'CREATE INDEX idx_noti_user_time ON notifications("userId", "createdAt" DESC)',
+  );
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.dropTableIfExists("notifications");
+}

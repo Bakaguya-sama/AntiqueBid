@@ -1,5 +1,7 @@
-exports.up = function (knex) {
-  return knex.schema.createTable("bids", function (table) {
+import type { Knex } from "knex";
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema.createTable("bids", function (table) {
     table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()")); // Dùng UUID làm Khóa chính
     table.uuid("auctionId").notNullable();
     table
@@ -14,9 +16,10 @@ exports.up = function (knex) {
 
     table.index(["auctionId"], "idx_bids_auction");
   });
-  // .raw("CREATE INDEX idx_bids_price ON bids(price DESC)");
-};
 
-exports.down = function (knex) {
-  return knex.schema.dropTableIfExists("bids");
-};
+  await knex.raw("CREATE INDEX idx_bids_price ON bids(price DESC)");
+}
+
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema.dropTableIfExists("bids");
+}

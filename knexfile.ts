@@ -1,5 +1,6 @@
-require("dotenv").config();
-require;
+import dotenv from "dotenv";
+dotenv.config();
+
 module.exports = {
   development: {
     client: "pg", // postgresql

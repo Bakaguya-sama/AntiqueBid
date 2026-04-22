@@ -1,5 +1,7 @@
-exports.up = function (knex) {
-  return knex.schema
+import type { Knex } from "knex";
+
+export async function up(knex: Knex): Promise<void> {
+  await knex.schema
     .createTable("auctions", function (table) {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()")); // Dùng UUID làm Khóa chính
       table
@@ -46,12 +48,12 @@ exports.up = function (knex) {
         .inTable("auctions")
         .onDelete("CASCADE");
     });
-};
+}
 
-exports.down = function (knex) {
-  return knex.schema
+export async function down(knex: Knex): Promise<void> {
+  await knex.schema
     .alterTable("bids", function (table) {
       table.dropForeign(["auctionId"]);
     })
     .dropTableIfExists("auctions");
-};
+}

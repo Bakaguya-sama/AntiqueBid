@@ -1,8 +1,8 @@
 // src/app.js
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
+import express, { Request, Response } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
 
 const app = express();
 
@@ -24,4 +24,6 @@ app.get("/api/health", (req, res) => {
 
 // 4. TODO: Global Error Handler ở đây sau
 
-module.exports = app;
+export default app;
+
+// npx knex migrate:latest --knexfile knexfile.ts
