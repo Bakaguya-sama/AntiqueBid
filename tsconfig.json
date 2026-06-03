@@ -9,7 +9,11 @@
     "strict": true,
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    }
   },
   "ts-node": {
     "transpileOnly": true

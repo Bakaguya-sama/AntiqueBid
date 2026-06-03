@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { UserRepository } from "../repositories/user.repo";
+import { UserRepository } from "../../repositories/user.repo";
 
 export class AuthService {
   static async register(data: any) {

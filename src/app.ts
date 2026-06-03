@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import authRoute from "../src/routes/auth.routes";
+import authRoute from "@/modules/auth/auth.routes";
 
 const app = express();
 
