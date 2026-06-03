@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  previewFeatures = ["driverAdapters"] 
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum AuctionStatus {
+  not_started
+  active
+  finished
+  cancelled
+}
+
+enum NotificationType {
+   outbid 
+    win 
+    lose 
+    auction_update
+}
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  fullName String
+  userName String @unique 
+  email String @unique
+  password String
+  role UserRole @default(user)
+  isActive Boolean     
+  lastLoginAt DateTime?  @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+
+  otp_use OTPUser[] @relation("OtpUse")
+  auction_seller Auction[] @relation("AuctionSeller")
+  auction_winner Auction[] @relation("AuctionWinner")
+  auction_bidder Bid[] @relation("AuctionBidder")
+  notification_recipient Notification[] @relation("NotificationRecipient")
+}
+
+model OTPUser {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  otpCode String 
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  isUsed Boolean
+
+  user User @relation("OtpUse", fields: [userId], references: [id])
+}
+
+model Antique {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  description String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime? @db.Timestamptz(3)
+
+  antique_auction Auction[] @relation("AntiqueAuction")
+}
+
+model Auction {
+  id String @id @default(uuid()) @db.Uuid
+  antiqueId String @db.Uuid
+  sellerId String @db.Uuid
+  startingPrice Decimal @db.Decimal(15, 2) @default(0)
+  stepPrice Decimal @db.Decimal(15, 2) @default(0)
+  currentPrice Decimal @db.Decimal(15, 2) @default(0)
+  startsAt DateTime
+  endsAt DateTime
+  status AuctionStatus @default(not_started)
+  winnerId String? @db.Uuid 
+  createdAt         DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @db.Timestamptz(3)
+  lastBidAt DateTime? @db.Timestamptz(3)
+  extendCount Int           
+  maxExtendCount Int        
+  extendWindowSec Int       
+  extendDurationSec Int
+  deletedAt    DateTime? @db.Timestamptz(3)
+    
+
+  auction_bid Bid[] @relation("AuctionBid")
+
+  auctionSeller User @relation("AuctionSeller", fields: [sellerId], references: [id])
+  antiqueAuction Antique @relation("AntiqueAuction", fields: [antiqueId], references: [id])
+  auctionWinner User? @relation("AuctionWinner", fields: [winnerId], references: [id])
+
+  @@index([status], name: "idx_auction_status")
+}
+
+model Bid {
+  id String @id @default(uuid()) @db.Uuid
+  auctionId String @db.Uuid
+  userId String @db.Uuid
+  price Decimal @db.Decimal(15, 2) @default(0) 
+  isValid Boolean
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt    DateTime? @db.Timestamptz(3)
+
+
+  auctionBid Auction @relation("AuctionBid", fields: [auctionId], references: [id])
+  auctionBidder User @relation("AuctionBidder", fields: [userId], references: [id])
+
+  @@index([auctionId], name: "idx_bids_auction")
+  @@index([price(sort: Desc)], name: "idx_bids_price")
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  userId String? @db.Uuid      // Null if this noti is sent to all of users
+  type NotificationType          
+  message String
+  isRead Boolean
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
+
+  notificationRecipient User? @relation("NotificationRecipient", fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], name: "idx_noti_user_time")
+}

@@ -1,0 +1,100 @@
+// CREATE INDEX idx_bids_auction ON Bids(auctionId);
+// CREATE INDEX idx_bids_price ON Bids(price DESC);
+
+Table Users {
+  id string [pk]
+  fullName string
+  userName string unique 
+  email string unique
+  password string
+  role string [note: "user/admin"] 
+  isActive boolean     
+  lastLoginAt datetime 
+  createdAt datetime
+  updatedAt datetime
+}
+
+Table OTP_Users {
+  id string [pk]
+  userId string
+  otpCode string 
+  expiresAt datetime
+  createdAt datetime
+  isUsed boolean
+}
+
+Table Antiques {
+  id string [pk]
+  name string
+  description string
+  createdAt datetime
+  updatedAt datetime
+}
+
+// CREATE INDEX idx_auction_status ON Auctions(status);
+Table Auctions {
+  id string [pk]
+  antiqueId string
+  sellerId string
+  startingPrice decimal(15,2)
+  stepPrice decimal(15,2)
+  currentPrice decimal(15,2)
+  startsAt datetime
+  endsAt datetime
+  status string [note: "not_started, active, finished, cancelled"]
+  winnerId string [note: "nullable và set khi status = finished"]
+  createdAt datetime
+  updatedAt datetime
+  lastBidAt datetime   // dùng để debug/analytics
+
+  extendCount int           // số lần đã extend
+  maxExtendCount int        // giới hạn số lần extend (vd: 6)
+  extendWindowSec int       // ngưỡng “gần hết giờ” (vd: 10s)
+  extendDurationSec int     // mỗi lần kéo dài (vd: 10s)
+}
+
+Table Bids {
+  // status = active
+  // AND now BETWEEN startsAt AND endsAt
+  id string [pk]
+  auctionId string
+  userId string
+  price decimal(15,2) [note: "price >= currentPrice + stepPrice"]
+  isValid boolean
+  createdAt datetime
+}
+
+// CREATE INDEX idx_noti_user_time ON notifications(userId, createdAt DESC);
+Table Notifications {
+  id string [pk]
+  userId string        // người nhận
+  type string          // outbid | win | lose | auction_update
+  message string
+  isRead boolean
+  createdAt datetime
+  updatedAt datetime
+}
+
+
+Ref: Users.id < Auctions.sellerId
+Ref: Antiques.id < Auctions.antiqueId
+
+Ref: Bids.auctionId > Auctions.id
+Ref: Bids.userId > Users.id
+
+Ref: Users.id < OTP_Users.userId
+
+Ref: Auctions.winnerId > Users.id
+
+Ref: Notifications.userId > Users.id
+
+
+
+
+
+
+
+
+
+
+
