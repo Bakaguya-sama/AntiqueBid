@@ -4,6 +4,7 @@ export interface AccessTokenPayload {
   sub: string;
   email: string;
   role: "user" | "admin";
+  jti: string;
 }
 
 export interface RefreshTokenPayload {

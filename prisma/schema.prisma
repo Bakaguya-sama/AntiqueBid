@@ -21,10 +21,11 @@ enum AuctionStatus {
 }
 
 enum NotificationType {
-   outbid 
-    win 
-    lose 
-    auction_update
+  outbid 
+  win 
+  lose 
+  auction_update
+  system
 }
 
 model User {
@@ -34,7 +35,7 @@ model User {
   email String @unique
   password String
   role UserRole @default(user)
-  isActive Boolean     
+  isActive Boolean @default(true)    
   lastLoginAt DateTime?  @db.Timestamptz(3)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -54,7 +55,7 @@ model OTPUser {
   otpCode String 
   expiresAt DateTime @db.Timestamptz(3)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
-  isUsed Boolean
+  isUsed Boolean @default(false)
 
   user User @relation("OtpUse", fields: [userId], references: [id])
 }
@@ -65,7 +66,7 @@ model Antique {
   description String
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
-  deletedAt    DateTime? @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
 
   antique_auction Auction[] @relation("AntiqueAuction")
 }
@@ -84,11 +85,11 @@ model Auction {
   createdAt         DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime    @updatedAt @db.Timestamptz(3)
   lastBidAt DateTime? @db.Timestamptz(3)
-  extendCount Int           
-  maxExtendCount Int        
-  extendWindowSec Int       
-  extendDurationSec Int
-  deletedAt    DateTime? @db.Timestamptz(3)
+  extendCount       Int @default(0)   // Bắt đầu với 0 lần gia hạn
+  maxExtendCount    Int @default(10)  // Tối đa gia hạn 10 lần
+  extendWindowSec   Int @default(300) // Khung giờ phút chót là 5 phút
+  extendDurationSec Int @default(300) // Mỗi lần gia hạn cộng thêm 5 phút
+  deletedAt DateTime? @db.Timestamptz(3)
     
 
   auction_bid Bid[] @relation("AuctionBid")
@@ -105,9 +106,9 @@ model Bid {
   auctionId String @db.Uuid
   userId String @db.Uuid
   price Decimal @db.Decimal(15, 2) @default(0) 
-  isValid Boolean
+  isValid Boolean @default(true)
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  deletedAt    DateTime? @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
 
 
   auctionBid Auction @relation("AuctionBid", fields: [auctionId], references: [id])
@@ -120,9 +121,9 @@ model Bid {
 model Notification {
   id String @id @default(uuid()) @db.Uuid
   userId String? @db.Uuid      // Null if this noti is sent to all of users
-  type NotificationType          
+  type NotificationType   @default(system)       
   message String
-  isRead Boolean
+  isRead Boolean @default(false)
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
 

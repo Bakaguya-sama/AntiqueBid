@@ -1,14 +1,34 @@
-import { db } from "../database/db";
-
+import { prisma } from "@/config/db.connection";
+import { Prisma } from "../../generated/prisma/client";
 export class UserRepository {
-  static async findByEmail(email: string) {
-    return await db("users").where({ email }).first();
+  async findByEmail(email: string) {
+    return await prisma.user.findUnique({ where: { email } });
   }
 
-  static async create(userData: any) {
-    const [user] = await db("users")
-      .insert(userData)
-      .returning(["id", "email", "userName", "fullName"]);
+  async findByUsername(username: string) {
+    return await prisma.user.findUnique({ where: { userName: username } });
+  }
+
+  async findById(id: string) {
+    return await prisma.user.findUnique({ where: { id } });
+  }
+
+  async create(userData: Prisma.UserCreateInput) {
+    const user = await prisma.user.create({
+      data: userData,
+    });
+
+    return user;
+  }
+
+  async update(id: string, data: Prisma.UserUpdateInput) {
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+    });
+
     return user;
   }
 }
+
+export const userRepository = new UserRepository();

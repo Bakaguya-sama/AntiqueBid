@@ -3,11 +3,16 @@ import { v4 as uuidv4 } from "uuid";
 import { jwtConfig } from "@/config/jwt.config";
 import { AccessTokenPayload, RefreshTokenPayload } from "@/types/jwt.types";
 import { prisma } from "@/config/db.connection";
+import { redisService } from "./redis.service";
 import bcript from "bcrypt";
 
 export class JwtService {
-  generateAccessToken(payload: AccessTokenPayload): string {
-    return jwt.sign(payload, jwtConfig.access.secret, jwtConfig.access.options);
+  generateAccessToken(payload: Omit<AccessTokenPayload, "jti">): string {
+    return jwt.sign(
+      { ...payload, jti: uuidv4() },
+      jwtConfig.access.secret,
+      jwtConfig.access.options,
+    );
   }
 
   generateRefreshToken(userId: string, tokenFamily: string): string {
@@ -58,16 +63,8 @@ export class JwtService {
     userId: string,
     refreshToken: string,
     tokenFamily: string,
-    expiresAt: Date,
   ) {
-    const encryptedToken = await bcript.hash(refreshToken, 10);
-
-    // Upsert theo userId + tokenFamily
-    // await prisma.refreshToken.upsert({
-    //   where: { userId_tokenFamily: { userId, tokenFamily } },
-    //   create: { userId, tokenFamily, token: hashedToken, expiresAt },
-    //   update: { token: hashedToken, expiresAt },
-    // });
+    await redisService.saveRefreshToken(userId, refreshToken, tokenFamily);
   }
 
   async rotateRefreshToken(
@@ -83,45 +80,43 @@ export class JwtService {
 
     const { sub: userId, tokenFamily } = payload;
 
-    // look up token in redis
+    const isValid = await redisService.validateRefreshToken(
+      userId,
+      oldRefreshToken,
+      tokenFamily,
+    );
 
-    // const stored = await prisma.refreshToken.findUnique({
-    //   where: { userId_tokenFamily: { userId, tokenFamily } },
-    //   include: { user: true },
-    // });
+    if (!isValid) {
+      await redisService.revokeAllRefreshTokens(userId);
+      return null;
+    }
 
-    // if (!stored || stored.expiresAt < new Date()) {
-    //   await this.revokeAllTokensByUser(userId);
-    //   return null;
-    // }
-
-    // const isValid = await bcrypt.compare(oldRefreshToken, stored.token);
-    // if (!isValid) {
-    //   await this.revokeAllTokensByUser(userId);
-    //   return null;
-    // }
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+    if (!user) return null;
 
     const newAccessToken = this.generateAccessToken({
       sub: userId,
-      email: stored.user.email,
-      role: stored.user.role,
+      email: user.email,
+      role: user.role,
     });
     const newRefreshToken = this.generateRefreshToken(userId, tokenFamily);
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await this.saveRefreshToken(
-      userId,
-      tokenFamily,
-      newRefreshToken,
-      expiresAt,
-    );
+    await this.saveRefreshToken(userId, tokenFamily, newRefreshToken);
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 
-  async revokeTokenFamily(userId: string, tokenFamily: string): Promise<void> {}
+  async revokeRefreshToken(userId: string, tokenFamily: string): Promise<void> {
+    await redisService.revokeRefreshToken(userId, tokenFamily);
+  }
 
-  async revokeAllTokensByUser(userId: string): Promise<void> {}
+  async revokeAllTokensByUser(userId: string): Promise<void> {
+    await redisService.revokeAllRefreshTokens(userId);
+  }
 }
 
 export const jwtService = new JwtService();
