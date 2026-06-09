@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { authService } from "./auth.service";
 import { jwtConfig } from "@/config/jwt.config";
 import { jwtService, JwtService } from "@/services/jwt.service";
+import passport from "@/config/passport.config";
+import { User } from "generated/prisma/client";
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -83,6 +85,35 @@ export class AuthController {
       next(error);
     }
   }
+
+  googleLogin = passport.authenticate("google", {
+    session: false,
+    scope: ["email", "profile"],
+  });
+
+  googleCallback = [
+    passport.authenticate("google", {
+      session: false,
+      failureRedirect: `${process.env.CLIENT_URL}/login?error=oauth_failed`,
+    }),
+
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const user = req.user as User;
+        const { accessToken, refreshToken } =
+          await authService.oauthLogin(user);
+
+        res.cookie("refreshToken", refreshToken, jwtConfig.cookie);
+
+        // res.redirect(
+        //   `${process.env.CLIENT_URL}/oauth/callback?accessToken=${accessToken}`,
+        // );
+        res.status(200).json({ success: true, data: { accessToken } });
+      } catch (error) {
+        next(error);
+      }
+    },
+  ];
 }
 
 export const authController = new AuthController();

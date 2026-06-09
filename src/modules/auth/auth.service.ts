@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { userRepository } from "../../repositories/user.repo";
 import { AppError } from "@/utils/app-error.utils";
 import { jwtService } from "@/services/jwt.service";
-import { Prisma } from "../../../generated/prisma/client";
+import { Prisma, User } from "../../../generated/prisma/client";
 import { loginInput } from "@/types/auth.types";
 import { redisService } from "@/services/redis.service";
 
@@ -17,7 +17,7 @@ export class AuthService {
     if (username) throw new Error("This username is used!");
 
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(data.password, saltRounds);
+    const hashedPassword = await bcrypt.hash(data.password!, saltRounds);
 
     const newUser = await userRepository.create({
       ...data,
@@ -45,7 +45,7 @@ export class AuthService {
       throw new AppError(401, "Invalid username");
     }
 
-    if (!(await bcrypt.compare(data.password, user.password))) {
+    if (!(await bcrypt.compare(data.password, user.password!))) {
       await redisService.incrementLoginAttempts(data.clientIp);
       throw new AppError(401, "Invalid password");
     }
@@ -54,6 +54,24 @@ export class AuthService {
 
     await redisService.resetLoginAttempts(data.clientIp);
 
+    const { accessToken, refreshToken, tokenFamily } =
+      await jwtService.generateTokenPair({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
+    await redisService.saveRefreshToken(user.id, refreshToken, tokenFamily);
+
+    await userRepository.update(user.id, { lastLoginAt: new Date() });
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async oauthLogin(user: User) {
     const { accessToken, refreshToken, tokenFamily } =
       await jwtService.generateTokenPair({
         id: user.id,

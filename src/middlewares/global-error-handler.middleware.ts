@@ -2,13 +2,13 @@ import { AuthRequest } from "@/types/jwt.types";
 import { AppError } from "@/utils/app-error.utils";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import { Prisma } from "../../generated/prisma/client";
-import { Response, NextFunction } from "express";
+import { Response, NextFunction, Request } from "express";
 
 const isDev = process.env.NODE_ENV === "development";
 
 export const errorHandler = (
   err: unknown,
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): void => {
