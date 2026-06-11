@@ -71,7 +71,11 @@ export class AuthService {
     };
   }
 
-  async oauthLogin(user: User) {
+  async oauthLogin(user?: User) {
+    if (!user) {
+      throw new AppError(401, "OAuth login failed");
+    }
+
     const { accessToken, refreshToken, tokenFamily } =
       await jwtService.generateTokenPair({
         id: user.id,

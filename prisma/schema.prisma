@@ -13,6 +13,12 @@ enum UserRole {
   user
 }
 
+enum AntiqueStatus {
+  available
+  sold
+  unavailable
+}
+
 enum AuctionStatus {
   not_started
   active
@@ -41,7 +47,7 @@ model User {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
-
+  antique_creator Antique[] @relation("AntiqueCreator")
   otp_use OTPUser[] @relation("OtpUse")
   identity UserIdentity[] @relation("Identity")
   auction_seller Auction[] @relation("AuctionSeller")
@@ -81,16 +87,29 @@ model Antique {
   id String @id @default(uuid()) @db.Uuid
   name String
   description String
+  status AntiqueStatus @default(available)
+  createdBy String @db.Uuid
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
-  antique_auction Auction[] @relation("AntiqueAuction")
+  auctionAntiques  AuctionAntique[]  @relation("AntiqueToAuctionAntique")
+  
+  antiqueCreator User @relation("AntiqueCreator", fields: [createdBy], references: [id])
+}
+
+model AuctionAntique {
+  auctionId  String @db.Uuid
+  antiqueId  String @db.Uuid
+
+  auction  Auction @relation("AuctionToAuctionAntique", fields: [auctionId], references: [id])
+  antique  Antique @relation("AntiqueToAuctionAntique", fields: [antiqueId], references: [id])
+
+  @@id([auctionId, antiqueId])  
 }
 
 model Auction {
   id String @id @default(uuid()) @db.Uuid
-  antiqueId String @db.Uuid
   sellerId String @db.Uuid
   startingPrice Decimal @db.Decimal(15, 2) @default(0)
   stepPrice Decimal @db.Decimal(15, 2) @default(0)
@@ -112,7 +131,7 @@ model Auction {
   auction_bid Bid[] @relation("AuctionBid")
 
   auctionSeller User @relation("AuctionSeller", fields: [sellerId], references: [id])
-  antiqueAuction Antique @relation("AntiqueAuction", fields: [antiqueId], references: [id])
+  auctionAntiques AuctionAntique[] @relation("AuctionToAuctionAntique")
   auctionWinner User? @relation("AuctionWinner", fields: [winnerId], references: [id])
 
   @@index([status], name: "idx_auction_status")

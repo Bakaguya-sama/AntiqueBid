@@ -4,8 +4,10 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import authRoute from "@/modules/auth/auth.routes";
+import antiqueRoute from "@/modules/antique/antique.routes";
 import { authenticate } from "./middlewares/auth.middleware";
 import { errorHandler } from "./middlewares/global-error-handler.middleware";
+import { userOnly, adminOnly, anyUser } from "./middlewares/role.middleware";
 import passport from "@/config/passport.config";
 
 const app = express();
@@ -19,8 +21,8 @@ app.use(passport.initialize()); // ← Thêm dòng này, KHÔNG dùng passport.s
 
 // 3. TODO: Khai báo các Routes chính ở đây sau (Auth, Auctions, Bids...)
 app.use("/api/v1/auth", authRoute);
+app.use("/api/v1/antique", authenticate, userOnly, antiqueRoute);
 
-// 4. TODO: Global Error Handler ở đây sau
 app.use(errorHandler);
 
 export default app;

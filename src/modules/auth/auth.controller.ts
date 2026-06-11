@@ -3,7 +3,7 @@ import { authService } from "./auth.service";
 import { jwtConfig } from "@/config/jwt.config";
 import { jwtService, JwtService } from "@/services/jwt.service";
 import passport from "@/config/passport.config";
-import { User } from "generated/prisma/client";
+import { AppError } from "@/utils/app-error.utils";
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -99,9 +99,11 @@ export class AuthController {
 
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const user = req.user as User;
-        const { accessToken, refreshToken } =
-          await authService.oauthLogin(user);
+        const user = req.user;
+
+        const { accessToken, refreshToken } = await authService.oauthLogin(
+          user as any,
+        );
 
         res.cookie("refreshToken", refreshToken, jwtConfig.cookie);
 
