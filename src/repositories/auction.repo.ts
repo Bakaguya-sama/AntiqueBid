@@ -45,8 +45,13 @@ export class AuctionRepository {
     };
   }
 
-  async createOneAuction(data: Prisma.AuctionCreateInput) {
-    return await prisma.auction.create({
+  async createOneAuction(
+    sellerId: string,
+    data: Prisma.AuctionCreateInput,
+    tx?: PrismaTransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return await client.auction.create({
       data,
     });
   }
