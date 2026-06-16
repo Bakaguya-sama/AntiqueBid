@@ -56,9 +56,14 @@ export class AntiqueRepository {
     });
   }
 
-  async findByAuctionId(auctionId: string, filter: paginationInput) {
+  async findByAuctionId(
+    auctionId: string,
+    filter: paginationInput,
+    tx?: PrismaTransactionClient,
+  ) {
+    const client = tx ?? prisma;
     const [data, total] = await Promise.all([
-      prisma.antique.findMany({
+      client.antique.findMany({
         where: {
           deletedAt: null,
           auctionAntiques: {
@@ -95,8 +100,9 @@ export class AntiqueRepository {
     };
   }
 
-  async findAllByAuctionId(auctionId: string) {
-    const records = await prisma.antique.findMany({
+  async findAllByAuctionId(auctionId: string, tx?: PrismaTransactionClient) {
+    const client = tx ?? prisma;
+    const records = await client.antique.findMany({
       where: {
         deletedAt: null,
         auctionAntiques: {
@@ -163,6 +169,22 @@ export class AntiqueRepository {
     return await prisma.antique.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  async updateManyAntiques(
+    ids: Array<string>,
+    data: Prisma.AntiqueUpdateInput,
+    tx?: PrismaTransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return await client.antique.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data,
     });
   }
 }

@@ -1,4 +1,5 @@
 import z from "zod";
+import { paginationSchema } from "@/types/pagination.types";
 
 const uuidSchema = z.uuidv4("Invalid ID format");
 
@@ -64,8 +65,7 @@ export const updateAuctionSchema = z.object({
 
       antiques: z
         .array(uuidSchema)
-        .min(1, "Auction must have at least 1 antique")
-        .optional(),
+        .min(1, "Auction must have at least 1 antique"),
     })
     .refine(
       (data) => {
@@ -98,6 +98,13 @@ export const deleteAuctionSchema = z.object({
   params: z.object({
     id: uuidSchema,
   }),
+});
+
+export const getAuctionBySellerSchema = z.object({
+  params: z.object({
+    id: z.string({ error: "Empty sellerId" }),
+  }),
+  query: paginationSchema.optional(),
 });
 
 export type CreateAuctionInput = z.infer<typeof createAuctionSchema>["body"];

@@ -7,6 +7,11 @@ import { Prisma, AuctionStatus, AntiqueStatus } from "generated/prisma/client";
 import { prisma } from "@/config/db.connection";
 import { auctionAntiqueReposistory } from "@/repositories/auction-antique.repo";
 import { bidRepository } from "@/repositories/bid.repo";
+import {
+  scheduleAuctionFinish,
+  rescheduleAuctionFinish,
+} from "@/queues/auction.queue";
+import util from "util";
 
 interface AntiqueWithAuctionResult {
   id: string;
@@ -61,6 +66,14 @@ export class AuctionService {
         tx,
       );
 
+      console.log(
+        util.inspect(antiquesToValidate, {
+          depth: null,
+          colors: true,
+          maxArrayLength: null,
+        }),
+      );
+
       if (antiquesToValidate.length !== antiqueIds.length) {
         const foundIds = antiquesToValidate.map((a) => a.id);
         const notFoundIds = antiqueIds.filter((id) => !foundIds.includes(id));
@@ -78,16 +91,21 @@ export class AuctionService {
           );
         }
 
-        const isInActiveOrFinishedAuction = antique.auctionAntiques.some(
+        const auctionStatusOfUpdatedAntiques = antique.auctionAntiques.map(
+          (el) => el.auction.status,
+        );
+
+        const isInActiveOrFinishedAuction = auctionStatusOfUpdatedAntiques.some(
           (aa) =>
-            aa.auction.status === AuctionStatus.active ||
-            aa.auction.status === AuctionStatus.finished,
+            aa === AuctionStatus.active ||
+            aa === AuctionStatus.finished ||
+            aa === AuctionStatus.not_started,
         );
 
         if (isInActiveOrFinishedAuction) {
           throw new AppError(
             400,
-            `Antique '${antique.name}' (${antique.id}) is already part of an active or finished auction.`,
+            `Antique '${antique.name}' (${antique.id}) is already part of other auction.`,
           );
         }
       }
@@ -99,6 +117,8 @@ export class AuctionService {
       );
 
       await auctionAntiqueReposistory.createMany(auction.id, antiqueIds, tx);
+
+      await scheduleAuctionFinish(auction.id, auction.endsAt);
 
       return tx.auction.findUnique({
         where: { id: auction.id },
@@ -221,17 +241,22 @@ export class AuctionService {
             );
           }
 
-          const isInOtherActiveAuction = antique.auctionAntiques.some(
-            (aa) =>
-              aa.auctionId !== auctionId &&
-              (aa.auction.status === AuctionStatus.active ||
-                aa.auction.status === AuctionStatus.finished),
+          const auctionStatusOfUpdatedAntiques = antique.auctionAntiques.map(
+            (el) => el.auction.status,
           );
 
-          if (isInOtherActiveAuction) {
+          const isInActiveOrFinishedAuction =
+            auctionStatusOfUpdatedAntiques.some(
+              (aa) =>
+                aa === AuctionStatus.active ||
+                aa === AuctionStatus.finished ||
+                aa === AuctionStatus.not_started,
+            );
+
+          if (isInActiveOrFinishedAuction) {
             throw new AppError(
               400,
-              `Antique '${antique.name}' (${antique.id}) is already part of an active or finished auction.`,
+              `Antique '${antique.name}' (${antique.id}) is already part of other auction.`,
             );
           }
         }
@@ -314,6 +339,52 @@ export class AuctionService {
           },
         },
       });
+    });
+  }
+
+  async finishAuction(auctionId: string) {
+    return await prisma.$transaction(async (tx) => {
+      const existingAuction = await auctionRepository.findById(auctionId, tx);
+
+      if (!existingAuction)
+        throw new AppError(400, "This auction does not exist");
+      if (existingAuction.status !== AuctionStatus.active)
+        throw new AppError(400, "This auction is no longer active.");
+      if (existingAuction.endsAt > new Date())
+        throw new AppError(400, "This auction has not ended yet..");
+
+      const highestBid = await bidRepository.findHighestBidByAuction(
+        auctionId,
+        tx,
+      );
+
+      const winnerId = highestBid?.userId ?? null;
+
+      const finishedAuction = await auctionRepository.updateAuction(
+        auctionId,
+        {
+          status: AuctionStatus.finished,
+          auctionWinner: winnerId ? { connect: { id: winnerId } } : undefined,
+        },
+        tx,
+      );
+
+      if (finishedAuction.winnerId) {
+        const soldAntiques = await antiqueRepository.findAllByAuctionId(
+          auctionId,
+          tx,
+        );
+
+        await antiqueRepository.updateManyAntiques(
+          soldAntiques,
+          {
+            status: AntiqueStatus.sold,
+          },
+          tx,
+        );
+      }
+
+      return finishedAuction;
     });
   }
 }

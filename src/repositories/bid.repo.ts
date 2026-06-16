@@ -54,6 +54,30 @@ export class BidRepository {
     });
     return bidCount > 0;
   }
+
+  async findHighestBidByAuction(
+    auctionId: string,
+    tx?: PrismaTransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return await client.bid.findFirst({
+      where: {
+        auctionId,
+        deletedAt: null,
+        isValid: true,
+      },
+      orderBy: {
+        price: "desc",
+      },
+    });
+  }
+
+  /*
+  SELECT * FROM Bid b JOIN Auction a ON b.auctionId = a.id
+  GROUP BY auctionId
+  ORDER BY price DESC
+  LIMIT 
+  */
 }
 
 export const bidRepository = new BidRepository();

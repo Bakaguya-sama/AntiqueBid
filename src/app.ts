@@ -5,12 +5,15 @@ import helmet from "helmet";
 import morgan from "morgan";
 import authRoute from "@/modules/auth/auth.routes";
 import antiqueRoute from "@/modules/antique/antique.routes";
+import auctionRoute from "@/modules/auction/auction.routes";
 import { authenticate } from "./middlewares/auth.middleware";
 import { errorHandler } from "./middlewares/global-error-handler.middleware";
 import { userOnly, adminOnly, anyUser } from "./middlewares/role.middleware";
 import passport from "@/config/passport.config";
+import { startQueues } from "./queues/queue.registry";
 
 const app = express();
+startQueues();
 
 // 1. Middlewares cơ bản
 app.use(helmet()); // Bảo mật
@@ -22,6 +25,7 @@ app.use(passport.initialize()); // ← Thêm dòng này, KHÔNG dùng passport.s
 // 3. TODO: Khai báo các Routes chính ở đây sau (Auth, Auctions, Bids...)
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/antique", authenticate, userOnly, antiqueRoute);
+app.use("/api/v1/auction", authenticate, userOnly, auctionRoute);
 
 app.use(errorHandler);
 

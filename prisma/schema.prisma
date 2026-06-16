@@ -135,6 +135,7 @@ model Auction {
   auctionWinner User? @relation("AuctionWinner", fields: [winnerId], references: [id])
 
   @@index([status], name: "idx_auction_status")
+  @@index([status, endsAt], name: "idx_auction_status_endsAt")
 }
 
 model Bid {

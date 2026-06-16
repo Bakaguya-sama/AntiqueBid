@@ -4,8 +4,9 @@ import { paginationInput } from "@/types/pagination.types";
 import { PrismaTransactionClient } from "@/types/transaction.types";
 
 export class AuctionRepository {
-  async findById(auctionId: string) {
-    return await prisma.auction.findUnique({
+  async findById(auctionId: string, tx?: PrismaTransactionClient) {
+    const client = tx ?? prisma;
+    return await client.auction.findUnique({
       where: { id: auctionId },
       include: {
         auctionAntiques: {
@@ -52,7 +53,14 @@ export class AuctionRepository {
   ) {
     const client = tx ?? prisma;
     return await client.auction.create({
-      data,
+      data: {
+        ...data,
+        auctionSeller: {
+          connect: {
+            id: sellerId,
+          },
+        },
+      },
     });
   }
 
