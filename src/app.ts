@@ -11,9 +11,11 @@ import { errorHandler } from "./middlewares/global-error-handler.middleware";
 import { userOnly, adminOnly, anyUser } from "./middlewares/role.middleware";
 import passport from "@/config/passport.config";
 import { startQueues } from "./queues/queue.registry";
+import { setupBullBoard } from "./config/bull-board";
 
 const app = express();
 startQueues();
+setupBullBoard(app);
 
 // 1. Middlewares cơ bản
 app.use(helmet()); // Bảo mật

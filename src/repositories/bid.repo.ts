@@ -1,19 +1,21 @@
-import { Prisma } from "@prisma/client/extension";
+import { Prisma } from "generated/prisma/client";
 import { prisma } from "@/config/db.connection";
 import { PrismaTransactionClient } from "@/types/transaction.types";
+import { paginationInput } from "@/types/pagination.types";
 
 export class BidRepository {
   async getAllBidsByAuctionId(auctionId: string) {
     const pageSize = 10;
     let cursor: { id: string } | undefined = undefined;
     let hasMore = true;
-    const resultIds = [];
+    const results = [];
 
     while (hasMore) {
       const records = await prisma.bid.findMany({
         where: {
           deletedAt: null,
           auctionId,
+          isValid: true,
         },
         take: pageSize,
         skip: cursor ? 1 : 0,
@@ -28,7 +30,7 @@ export class BidRepository {
         break;
       }
 
-      resultIds.push(...records);
+      results.push(...records);
 
       if (records.length < pageSize) {
         hasMore = false;
@@ -38,7 +40,43 @@ export class BidRepository {
       }
     }
 
-    return resultIds;
+    return results;
+  }
+
+  async getBidsByAuctionIdWithPagination(
+    auctionId: string,
+    filter: paginationInput,
+  ) {
+    const [data, total] = await Promise.all([
+      prisma.bid.findMany({
+        where: {
+          auctionId,
+          deletedAt: null,
+          isValid: true,
+        },
+        take: filter.take,
+        skip: filter.skip,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.bid.count({
+        where: {
+          auctionId,
+          deletedAt: null,
+          isValid: true,
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      metadata: {
+        total,
+        skip: filter.skip,
+        take: filter.take,
+      },
+    };
   }
 
   async hasBids(
@@ -78,6 +116,27 @@ export class BidRepository {
   ORDER BY price DESC
   LIMIT 
   */
+
+  async createBid(data: Prisma.BidCreateInput, tx?: PrismaTransactionClient) {
+    const client = tx ?? prisma;
+    return await client.bid.create({
+      data,
+    });
+  }
+
+  async updateBid(
+    id: string,
+    data: Prisma.BidUpdateInput,
+    tx?: PrismaTransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return await client.bid.update({
+      where: {
+        id,
+      },
+      data,
+    });
+  }
 }
 
 export const bidRepository = new BidRepository();

@@ -95,6 +95,62 @@ export class AuctionController {
     }
   }
 
+  async finishAuction(req: Request, res: Response, next: NextFunction) {
+    try {
+      const auctionId = req.params.id as string;
+      const finishedAuction = await auctionService.finishAuction(auctionId);
+      res.status(200).json({
+        success: true,
+        message: "Auction finished successfully",
+        data: finishedAuction,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async placeBid(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.sub;
+      const auctionId = req.params.id;
+      const price = req.body.price;
+      const bid = await auctionService.placeBid(
+        userId as string,
+        auctionId as string,
+        price as number,
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Bid placed successfully",
+        data: bid,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async getBidsOfAuction(req: Request, res: Response, next: NextFunction) {
+    try {
+      const auctionId = req.params.id;
+
+      const bidList = await auctionService.getBidsOfAuction(
+        auctionId as string,
+        {
+          take: req.query.take as unknown as number,
+          skip: req.query.skip as unknown as number,
+        },
+      );
+
+      res.status(200).json({
+        success: true,
+        data: bidList,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
   //   async deleteAuction(req: Request, res: Response, next: NextFunction) {
   //     try {
   //     } catch (error: any) {

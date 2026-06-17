@@ -100,9 +100,46 @@ export const deleteAuctionSchema = z.object({
   }),
 });
 
+export const finishAuctionSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+});
+
 export const getAuctionBySellerSchema = z.object({
   params: z.object({
     id: z.string({ error: "Empty sellerId" }),
+  }),
+  query: paginationSchema.optional(),
+});
+
+export const placeBidSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+  body: z.object({
+    price: z
+      .number({ error: "Can not submit empty bid" })
+      .min(0, "Your bid must be greater than 0")
+      .multipleOf(0.01),
+  }),
+});
+
+export const updateBidSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+  body: z.object({
+    price: z
+      .number({ error: "Can not submit empty bid" })
+      .min(0, "Your bid must be greater than 0")
+      .multipleOf(0.01),
+  }),
+});
+
+export const getBidsOfAuctionSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
   }),
   query: paginationSchema.optional(),
 });

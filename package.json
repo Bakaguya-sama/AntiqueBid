@@ -13,6 +13,8 @@
     "db:drop": "tsx src/database/migrations/drop_db.ts"
   },
   "dependencies": {
+    "@bull-board/api": "^8.0.0",
+    "@bull-board/express": "^8.0.0",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",

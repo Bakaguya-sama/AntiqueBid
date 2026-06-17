@@ -98,6 +98,18 @@ export class RedisService {
   private blacklistKey(jti: string): string {
     return `bl:${jti}`;
   }
+
+  async acquireBidLock(auctionId: string, userId: string): Promise<boolean> {
+    const key = this.bidKey(auctionId, userId);
+
+    const result = await redis.set(key, "locked", "EX", 3, "NX");
+
+    return result === "OK";
+  }
+
+  private bidKey(auctionId: string, userId: string) {
+    return `bk:${userId}:${auctionId}`;
+  }
 }
 
 export const redisService = new RedisService();

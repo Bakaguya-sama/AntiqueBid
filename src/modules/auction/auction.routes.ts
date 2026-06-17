@@ -5,6 +5,8 @@ import {
   updateAuctionSchema,
   createAuctionSchema,
   cancelAuctionSchema,
+  placeBidSchema,
+  getBidsOfAuctionSchema,
 } from "./auction.schema";
 import { validate } from "@/middlewares/validate.middleware";
 import { auctionController } from "./auction.controller";
@@ -36,9 +38,23 @@ route.patch(
 );
 
 route.patch(
-  "/cancel/:id",
+  "/:id/cancel",
   validate(cancelAuctionSchema),
   auctionController.cancelAuction,
 );
+
+route.patch(
+  "/:id/finish",
+  validate(cancelAuctionSchema),
+  auctionController.finishAuction,
+);
+
+route.get(
+  "/:id/bids",
+  validate(getBidsOfAuctionSchema),
+  auctionController.getBidsOfAuction,
+);
+
+route.post("/:id/bids", validate(placeBidSchema), auctionController.placeBid);
 
 export default route;

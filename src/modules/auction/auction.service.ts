@@ -10,8 +10,12 @@ import { bidRepository } from "@/repositories/bid.repo";
 import {
   scheduleAuctionFinish,
   rescheduleAuctionFinish,
+  scheduleAuctionStart,
+  rescheduleAuctionStart,
+  removeJobFromAuctionQueue,
 } from "@/queues/auction.queue";
 import util from "util";
+import { redisService } from "@/services/redis.service";
 
 interface AntiqueWithAuctionResult {
   id: string;
@@ -119,6 +123,7 @@ export class AuctionService {
       await auctionAntiqueReposistory.createMany(auction.id, antiqueIds, tx);
 
       await scheduleAuctionFinish(auction.id, auction.endsAt);
+      await scheduleAuctionStart(auction.id, auction.startsAt);
 
       return tx.auction.findUnique({
         where: { id: auction.id },
@@ -149,7 +154,20 @@ export class AuctionService {
     const seller = await userRepository.findById(sellerId);
     if (!seller) throw new AppError(404, "Seller does not exist");
 
-    return await prisma.$transaction(async (tx) => {
+    const newEndsAt =
+      data.endsAt instanceof Date
+        ? data.endsAt
+        : (data.endsAt as { set?: Date } | undefined)?.set;
+
+    const newStartsAt =
+      data.startsAt instanceof Date
+        ? data.startsAt
+        : (data.startsAt as { set?: Date } | undefined)?.set;
+
+    let currentEndsAt: Date | undefined;
+    let currentStartsAt: Date | undefined;
+
+    const updatedAuction = await prisma.$transaction(async (tx) => {
       const auction = await tx.auction.findUnique({
         where: { id: auctionId },
       });
@@ -180,10 +198,18 @@ export class AuctionService {
         );
       }
 
+      currentEndsAt = auction.endsAt;
+      currentStartsAt = auction.startsAt;
+
       const hasBids = await bidRepository.hasBids(auctionId, tx);
       const currentAntiqueIds = (
-        await auctionAntiqueReposistory.findByAuctionId(auctionId)
-      ).map((aa) => aa.antiqueId);
+        (await auctionAntiqueReposistory.findByAuctionId(
+          auctionId,
+          tx,
+        )) as Array<{
+          antiqueId: string;
+        }>
+      ).map((aa: { antiqueId: string }) => aa.antiqueId);
 
       if (hasBids) {
         if (
@@ -241,19 +267,13 @@ export class AuctionService {
             );
           }
 
-          const auctionStatusOfUpdatedAntiques = antique.auctionAntiques.map(
-            (el) => el.auction.status,
+          const isInAnotherAuction = antique.auctionAntiques.some(
+            (aa) =>
+              aa.auctionId !== auction.id &&
+              aa.auction.status !== AuctionStatus.cancelled,
           );
 
-          const isInActiveOrFinishedAuction =
-            auctionStatusOfUpdatedAntiques.some(
-              (aa) =>
-                aa === AuctionStatus.active ||
-                aa === AuctionStatus.finished ||
-                aa === AuctionStatus.not_started,
-            );
-
-          if (isInActiveOrFinishedAuction) {
+          if (isInAnotherAuction) {
             throw new AppError(
               400,
               `Antique '${antique.name}' (${antique.id}) is already part of other auction.`,
@@ -280,6 +300,34 @@ export class AuctionService {
         },
       });
     });
+
+    console.log("data.endsAt raw:", data.endsAt);
+    console.log("data.endsAt instanceof Date:", data.endsAt instanceof Date);
+
+    console.log("Current endsAt raw:", currentEndsAt);
+    console.log(
+      "Current endsAt instanceof Date:",
+      currentEndsAt instanceof Date,
+    );
+
+    const shouldRescheduleFinish =
+      newEndsAt !== undefined &&
+      currentEndsAt !== undefined &&
+      newEndsAt.getTime() !== currentEndsAt.getTime();
+
+    const shouldRescheduleStart =
+      newStartsAt !== undefined &&
+      currentStartsAt !== undefined &&
+      newStartsAt.getTime() !== currentStartsAt.getTime();
+
+    if (shouldRescheduleFinish) {
+      await rescheduleAuctionFinish(auctionId, newEndsAt!);
+    }
+    if (shouldRescheduleStart) {
+      await rescheduleAuctionStart(auctionId, newStartsAt!);
+    }
+
+    return updatedAuction;
   }
 
   async cancelAuction(auctionId: string, sellerId: string) {
@@ -330,6 +378,12 @@ export class AuctionService {
         { status: AuctionStatus.cancelled },
         tx,
       );
+
+      await removeJobFromAuctionQueue("finish", auctionId);
+
+      if (auction.status === AuctionStatus.not_started) {
+        await removeJobFromAuctionQueue("start", auctionId);
+      }
 
       return tx.auction.findUnique({
         where: { id: auctionId },
@@ -386,6 +440,145 @@ export class AuctionService {
 
       return finishedAuction;
     });
+  }
+
+  async startAuction(auctionId: string) {
+    return await prisma.$transaction(async (tx) => {
+      const existingAuction = await auctionRepository.findById(auctionId, tx);
+
+      if (!existingAuction)
+        throw new AppError(400, "This auction does not exist");
+      if (existingAuction.status !== AuctionStatus.not_started)
+        throw new AppError(
+          400,
+          "Can not activate this auction because of its status.",
+        );
+      if (existingAuction.startsAt > new Date())
+        throw new AppError(400, "It's not time to activate this auction.");
+
+      const activeAuction = await auctionRepository.updateAuction(
+        auctionId,
+        {
+          status: AuctionStatus.active,
+        },
+        tx,
+      );
+
+      return activeAuction;
+    });
+  }
+
+  async placeBid(userId: string, auctionId: string, bidPrice: number) {
+    // Rate limit
+    const allowed = await redisService.acquireBidLock(auctionId, userId);
+    if (!allowed) {
+      throw new AppError(
+        429,
+        "You're bidding too fast! Please wait 2 seconds before bidding again.",
+      );
+    }
+
+    try {
+      const bid = await prisma.$transaction(
+        async (tx) => {
+          const existingAuction = await auctionRepository.findById(
+            auctionId,
+            tx,
+          );
+
+          if (!existingAuction)
+            throw new AppError(404, "This auction does not exist");
+          if (existingAuction.status !== AuctionStatus.active)
+            throw new AppError(400, "This auction is not active");
+          if (existingAuction.endsAt < new Date())
+            throw new AppError(400, "This auction has been already finished");
+          if (userId === existingAuction.sellerId)
+            throw new AppError(400, "Seller cannot bid on their own auction");
+
+          const minBid =
+            Number(existingAuction.currentPrice) +
+            Number(existingAuction.stepPrice);
+
+          if (bidPrice < minBid) {
+            throw new AppError(400, `Bid must be at least ${minBid}`);
+          }
+
+          // Sliding window
+          const now = new Date();
+          const timeLeft = existingAuction!.endsAt.getTime() - now.getTime();
+          const windowMs = existingAuction!.extendWindowSec * 1000;
+          const isInLastWindow = timeLeft <= windowMs;
+          const canExtend =
+            existingAuction!.extendCount < existingAuction!.maxExtendCount;
+
+          let newEndsAt: Date | null = null;
+
+          if (isInLastWindow && canExtend) {
+            newEndsAt = new Date(
+              existingAuction!.endsAt.getTime() +
+                existingAuction!.extendDurationSec * 1000,
+            );
+          }
+          const newBid = await bidRepository.createBid(
+            {
+              price: bidPrice,
+              isValid: true,
+              auctionBid: {
+                connect: {
+                  id: auctionId,
+                },
+              },
+              auctionBidder: {
+                connect: {
+                  id: userId,
+                },
+              },
+            },
+            tx,
+          );
+
+          await auctionRepository.updateAuction(
+            auctionId,
+            {
+              currentPrice: bidPrice,
+              lastBidAt: now,
+              ...(newEndsAt && {
+                endsAt: newEndsAt,
+                extendCount: { increment: 1 },
+              }),
+            },
+            tx,
+          );
+
+          return { newBid, newEndsAt };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+
+      console.log(bid.newEndsAt);
+      if (bid.newEndsAt) {
+        await rescheduleAuctionFinish(auctionId, bid.newEndsAt);
+      }
+
+      return bid.newBid;
+    } catch (error: any) {
+      if (error?.code === "P2034") {
+        throw new AppError(409, "Bid conflict, please try again.");
+      }
+      throw error;
+    }
+  }
+
+  async getBidsOfAuction(auctionId: string, filter: paginationInput) {
+    const existingAuction = await auctionRepository.findById(auctionId);
+
+    if (!existingAuction)
+      throw new AppError(404, "This auction does not exist");
+
+    return await bidRepository.getBidsByAuctionIdWithPagination(
+      auctionId,
+      filter,
+    );
   }
 }
 
