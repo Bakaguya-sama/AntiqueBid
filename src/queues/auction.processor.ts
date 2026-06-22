@@ -2,6 +2,7 @@ import { redisOptions } from "@/config/redis.connection";
 import { AuctionFinishJobData, AuctionStartJobData } from "./auction.queue";
 import { Worker, Job } from "bullmq";
 import { auctionService } from "@/modules/auction/auction.service";
+import { getIO } from "@/config/socket.config";
 
 export const auctionWorker = new Worker(
   "auction",
@@ -10,13 +11,30 @@ export const auctionWorker = new Worker(
       case "finish-auction": {
         const { auctionId } = job.data as AuctionFinishJobData;
         console.log(`[Queue] Finishing auction ${auctionId}`);
-        await auctionService.finishAuction(auctionId);
+        const finished = await auctionService.finishAuction(auctionId);
+
+        if (finished) {
+          const io = getIO();
+          io.to(`auction:${auctionId}`).emit("auction:finished", {
+            auctionId,
+            winnerId: finished.winnerId,
+          });
+        }
+
         break;
       }
       case "start-auction": {
         const { auctionId } = job.data as AuctionStartJobData;
         console.log(`[Queue] Activating auction ${auctionId}`);
-        await auctionService.startAuction(auctionId);
+        const activeAuction = await auctionService.startAuction(auctionId);
+
+        if (activeAuction) {
+          const io = getIO();
+          io.to(`auction:${auctionId}`).emit("auction:start", {
+            auctionId,
+          });
+        }
+
         break;
       }
       default:

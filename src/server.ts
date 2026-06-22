@@ -1,19 +1,29 @@
 import app from "./app";
 import dotenv from "dotenv";
 import redis from "./config/redis.connection";
+import { createServer } from "http";
+import { initSocketServer } from "./config/socket.config";
+import { registerSocketHandlers } from "./sockets/socket.registry";
+import { startQueues } from "./queues/queue.registry";
 
 dotenv.config(); // Load biến môi trường từ file .env
 
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, () => {
+const httpServer = createServer(app);
+const io = initSocketServer(httpServer);
+registerSocketHandlers(io);
+
+startQueues();
+
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server is running smoothly on port ${PORT}`);
   console.log(`👉 Check health at: http://localhost:${PORT}/api/health`);
 });
 
 const shutdown = (signal: string) => {
   console.log(`🛑 Received ${signal}. Shutting down...`);
-  server.close(async () => {
+  httpServer.close(async () => {
     try {
       await redis.quit();
     } catch (err) {
@@ -34,7 +44,7 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("unhandledRejection", (err: any) => {
   console.log("UNHANDLED REJECTION! 💥 Shutting down...");
   console.log(err.name, err.message);
-  server.close(() => {
+  httpServer.close(() => {
     process.exit(1);
   });
 });

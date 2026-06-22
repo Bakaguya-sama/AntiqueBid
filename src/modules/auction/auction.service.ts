@@ -16,6 +16,7 @@ import {
 } from "@/queues/auction.queue";
 import util from "util";
 import { redisService } from "@/services/redis.service";
+import { getIO } from "@/config/socket.config";
 
 interface AntiqueWithAuctionResult {
   id: string;
@@ -560,6 +561,15 @@ export class AuctionService {
         await rescheduleAuctionFinish(auctionId, bid.newEndsAt);
       }
 
+      const io = getIO();
+      io.to(`auction:${auctionId}`).emit("auction:price_updated", {
+        auctionId,
+        currentPrice: bidPrice,
+        bidderId: userId,
+        bidTime: new Date().toISOString(),
+        newEndsAt: bid.newEndsAt?.toISOString(),
+      });
+
       return bid.newBid;
     } catch (error: any) {
       if (error?.code === "P2034") {
@@ -579,6 +589,27 @@ export class AuctionService {
       auctionId,
       filter,
     );
+  }
+
+  async validateAuctionJoinable(auctionId: string) {
+    const auction = await auctionRepository.findById(auctionId);
+
+    if (!auction || auction.deletedAt) {
+      return {
+        valid: false,
+        message: "Auction not found",
+      };
+    }
+
+    const blockedStatuses: AuctionStatus[] = ["finished", "cancelled"];
+    if (blockedStatuses.includes(auction.status)) {
+      return {
+        valid: false,
+        message: `This auction has ${auction.status} status`,
+      };
+    }
+
+    return { valid: true };
   }
 }
 
