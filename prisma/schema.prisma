@@ -92,16 +92,30 @@ model OTPUser {
 model Antique {
   id String @id @default(uuid()) @db.Uuid
   name String
-  description String
+  description String?
   status AntiqueStatus @default(available)
   createdBy String @db.Uuid
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
+  categoryId String @db.Uuid
+
 
   auctionAntiques  AuctionAntique[]  @relation("AntiqueToAuctionAntique")
   
   antiqueCreator User @relation("AntiqueCreator", fields: [createdBy], references: [id])
+  antiqueCategory AntiqueCategory @relation("AntiqueCategory", fields: [categoryId], references: [id])
+}
+
+model AntiqueCategory {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  slug String @unique
+  description String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  antiques Antique[] @relation("AntiqueCategory")
 }
 
 model AuctionAntique {
@@ -116,6 +130,8 @@ model AuctionAntique {
 
 model Auction {
   id String @id @default(uuid()) @db.Uuid
+  title String
+  description String?
   sellerId String @db.Uuid
   startingPrice Decimal @db.Decimal(15, 2) @default(0)
   stepPrice Decimal @db.Decimal(15, 2) @default(0)
@@ -163,6 +179,7 @@ model Bid {
 
 model Notification {
   id String @id @default(uuid()) @db.Uuid
+  title String
   userId    String?          @db.Uuid  
   type NotificationType   @default(system_announcement)  
   scope NotificationScope @default(system)   
