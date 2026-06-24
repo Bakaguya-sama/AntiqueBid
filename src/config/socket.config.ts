@@ -6,6 +6,11 @@ import {
   SocketData,
 } from "@/sockets/socket.types";
 
+const socketNamespace = {
+  auction: "/auction",
+  notification: "/notification",
+} as const;
+
 export type TypedServer = SocketIOServer<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -28,5 +33,6 @@ export function initSocketServer(httpServer: HTTPServer): TypedServer {
 
 export function getIO(): TypedServer {
   if (!io) throw new Error("Socket.io not initialized");
+
   return io;
 }

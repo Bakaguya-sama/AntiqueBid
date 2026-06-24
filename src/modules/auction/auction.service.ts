@@ -3,7 +3,12 @@ import { auctionRepository } from "@/repositories/auction.repo";
 import { userRepository } from "@/repositories/user.repo";
 import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
-import { Prisma, AuctionStatus, AntiqueStatus } from "generated/prisma/client";
+import {
+  Prisma,
+  AuctionStatus,
+  AntiqueStatus,
+  NotificationType,
+} from "generated/prisma/client";
 import { prisma } from "@/config/db.connection";
 import { auctionAntiqueReposistory } from "@/repositories/auction-antique.repo";
 import { bidRepository } from "@/repositories/bid.repo";
@@ -16,6 +21,7 @@ import {
 } from "@/queues/auction.queue";
 import util from "util";
 import { redisService } from "@/services/redis.service";
+import { notificationService } from "../notification/notification.service";
 import { getIO } from "@/config/socket.config";
 
 interface AntiqueWithAuctionResult {
@@ -398,7 +404,7 @@ export class AuctionService {
   }
 
   async finishAuction(auctionId: string) {
-    return await prisma.$transaction(async (tx) => {
+    const finished = await prisma.$transaction(async (tx) => {
       const existingAuction = await auctionRepository.findById(auctionId, tx);
 
       if (!existingAuction)
@@ -439,8 +445,23 @@ export class AuctionService {
         );
       }
 
-      return finishedAuction;
+      return {
+        finishedAuction,
+        winner: finishedAuction.winnerId,
+        seller: finishedAuction.sellerId,
+        highestBid: highestBid.price,
+        auction: auctionId,
+      };
     });
+
+    await this.postAuctionFinish(
+      finished.auction,
+      finished.winner,
+      finished.seller,
+      finished.highestBid,
+    );
+
+    return finished.finishedAuction;
   }
 
   async startAuction(auctionId: string) {
@@ -610,6 +631,30 @@ export class AuctionService {
     }
 
     return { valid: true };
+  }
+
+  async postAuctionFinish(
+    auctionId: string,
+    winner: string | null,
+    seller: string,
+    highestBid: number | null,
+  ) {
+    await Promise.all([
+      winner
+        ? notificationService.createPersonalNotification(
+            winner,
+            `Congratulations! You have won the auction with a bid of ${highestBid}`,
+            NotificationType.win,
+          )
+        : null,
+      notificationService.createPersonalNotification(
+        seller,
+        winner
+          ? `Your auction ${auctionId} has ended. A winner was found.`
+          : `Your auction ${auctionId} has ended. There was no winner.`,
+        NotificationType.auction_update,
+      ),
+    ]);
   }
 }
 

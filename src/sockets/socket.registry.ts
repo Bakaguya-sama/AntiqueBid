@@ -1,6 +1,7 @@
 import { TypedServer } from "@/config/socket.config";
 import { socketAuthMiddleware } from "./socket.middleware";
 import { registerAuctionHandlers } from "./handlers/auction.socket";
+import { registerNotificationHandlers } from "./handlers/notification.socket";
 
 export function registerSocketHandlers(io: TypedServer) {
   io.use(socketAuthMiddleware);
@@ -9,7 +10,7 @@ export function registerSocketHandlers(io: TypedServer) {
     console.log(`Socket connected: ${socket.id} (user: ${socket.data.userId})`);
 
     registerAuctionHandlers(socket);
-    // registerNotificationHandlers(socket);
+    registerNotificationHandlers(socket);
 
     socket.on("disconnect", () => {
       console.log(`Socket disconnected: ${socket.id}`);

@@ -27,10 +27,15 @@ enum AuctionStatus {
 }
 
 enum NotificationType {
-  outbid 
-  win 
-  lose 
+  outbid
+  win
+  lose
   auction_update
+  system_announcement
+}
+
+enum NotificationScope {
+  personal
   system
 }
 
@@ -53,7 +58,8 @@ model User {
   auction_seller Auction[] @relation("AuctionSeller")
   auction_winner Auction[] @relation("AuctionWinner")
   auction_bidder Bid[] @relation("AuctionBidder")
-  notification_recipient Notification[] @relation("NotificationRecipient")
+  notification_recipient NotificationReadReceipt[] @relation("NotificationReadReceipts")
+  notification_recipient2 Notification[] @relation("NotificationRecipient")
 }
 
 model UserIdentity {
@@ -157,14 +163,32 @@ model Bid {
 
 model Notification {
   id String @id @default(uuid()) @db.Uuid
-  userId String? @db.Uuid      // Null if this noti is sent to all of users
-  type NotificationType   @default(system)       
+  userId    String?          @db.Uuid  
+  type NotificationType   @default(system_announcement)  
+  scope NotificationScope @default(system)   
   message String
-  isRead Boolean @default(false)
+  metadata  Json?
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(3)
 
-  notificationRecipient User? @relation("NotificationRecipient", fields: [userId], references: [id])
+  readReceipts NotificationReadReceipt[] @relation("NotificationReadReceipts")
 
-  @@index([userId, createdAt(sort: Desc)], name: "idx_noti_user_time")
+  notficationRecipient User? @relation("NotificationRecipient", fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], name: "idx_noti_userId_createdAt")
+  @@index([createdAt(sort: Desc)],         name: "idx_noti_system_createdAt")
+}
+
+
+model NotificationReadReceipt {
+  notificationId String @db.Uuid
+  userId String @db.Uuid
+  readAt DateTime @default(now()) @db.Timestamptz(3)
+
+  notification Notification @relation("NotificationReadReceipts", fields: [notificationId], references: [id])
+  user User @relation("NotificationReadReceipts", fields: [userId], references: [id])
+
+
+  @@id([notificationId, userId])
+  @@index([userId], name: "idx_receipt_userId") 
 }

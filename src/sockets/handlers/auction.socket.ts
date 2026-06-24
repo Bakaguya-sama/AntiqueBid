@@ -73,7 +73,7 @@ export function registerAuctionHandlers(socket: Socket) {
 }
 
 async function addViewer(auctionId: string, userId: string) {
-  const key = `viewers:${auctionId}`;
+  const key = `auction_viewers:${auctionId}`;
 
   await redis.sadd(key, userId);
   await redis.expire(key, 3600);
@@ -81,7 +81,7 @@ async function addViewer(auctionId: string, userId: string) {
 }
 
 async function removeViewer(auctionId: string, userId: string) {
-  const key = `viewers:${auctionId}`;
+  const key = `auction_viewers:${auctionId}`;
 
   await redis.srem(key, userId);
   return await redis.scard(key);

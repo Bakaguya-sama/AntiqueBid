@@ -37,12 +37,23 @@ export interface ServerToClientEvents {
     id: string;
     type: string;
     message: string;
+    scope: string;
+    isRead: boolean;
+    meta?: Record<string, unknown>;
+  }) => void;
+
+  "notification:marked_read": (data: {
+    notificationIds: string[];
+    unreadCount: number;
   }) => void;
 }
 
 export interface ClientToServerEvents {
   "auction:join": (auctionId: string) => void;
   "auction:leave": (auctionId: string) => void;
+
+  "notification:join": () => void;
+  "notification:leave": () => void;
 }
 
 export interface SocketData {

@@ -14,6 +14,16 @@ export class UserRepository {
     return await prisma.user.findUnique({ where: { id } });
   }
 
+  async findByManyIds(ids: Array<string>) {
+    return await prisma.user.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
+
   async create(userData: Prisma.UserCreateInput) {
     const user = await prisma.user.create({
       data: userData,
