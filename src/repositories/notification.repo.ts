@@ -90,6 +90,7 @@ export class NotificationRepository {
   }
 
   async createNotification(
+    title: string,
     message: string,
     scope: NotificationScope,
     type: NotificationType,
@@ -100,6 +101,7 @@ export class NotificationRepository {
     const client = tx ?? prisma;
     return await client.notification.create({
       data: {
+        title,
         userId: userId ? userId : undefined,
         message,
         type,
@@ -110,6 +112,7 @@ export class NotificationRepository {
   }
 
   async createOneNotificationForManyRecipients(
+    title: string,
     message: string,
     scope: NotificationScope,
     type: NotificationType,
@@ -120,6 +123,7 @@ export class NotificationRepository {
     const client = tx ?? prisma;
     return await client.notification.createManyAndReturn({
       data: userIds.map((userId) => ({
+        title,
         userId,
         message,
         type,

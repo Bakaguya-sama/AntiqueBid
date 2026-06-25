@@ -37,9 +37,10 @@ export const createAntiqueSchema = z.object({
       .min(3, "Antique's name must be at least 3 characters")
       .max(50),
     description: z
-      .string({ error: "Description is required" })
+      .string()
       .min(3, "Antique's description must be at least 3 characters")
-      .max(1000),
+      .max(1000)
+      .optional(),
     categoryId: uuidSchema,
   }),
 });

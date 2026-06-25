@@ -447,6 +447,7 @@ export class AuctionService {
 
       return {
         finishedAuction,
+        title: finishedAuction.title,
         winner: finishedAuction.winnerId,
         seller: finishedAuction.sellerId,
         highestBid: highestBid.price,
@@ -455,6 +456,7 @@ export class AuctionService {
     });
 
     await this.postAuctionFinish(
+      finished.title,
       finished.auction,
       finished.winner,
       finished.seller,
@@ -634,6 +636,7 @@ export class AuctionService {
   }
 
   async postAuctionFinish(
+    title: string,
     auctionId: string,
     winner: string | null,
     seller: string,
@@ -642,16 +645,18 @@ export class AuctionService {
     await Promise.all([
       winner
         ? notificationService.createPersonalNotification(
+            "Auction update",
             winner,
             `Congratulations! You have won the auction with a bid of ${highestBid}`,
             NotificationType.win,
           )
         : null,
       notificationService.createPersonalNotification(
+        "Auction update",
         seller,
         winner
-          ? `Your auction ${auctionId} has ended. A winner was found.`
-          : `Your auction ${auctionId} has ended. There was no winner.`,
+          ? `Your auction ${title} has ended. A winner was found.`
+          : `Your auction ${title} has ended. There was no winner.`,
         NotificationType.auction_update,
       ),
     ]);

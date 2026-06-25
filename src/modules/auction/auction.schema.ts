@@ -9,6 +9,15 @@ const auctionTimeRefinement = (data: { startsAt: Date; endsAt: Date }) =>
 export const createAuctionSchema = z.object({
   body: z
     .object({
+      title: z
+        .string({ error: "Auction's title is required" })
+        .min(3, "Auction's title must be at least 3 characters")
+        .max(50),
+      description: z
+        .string()
+        .min(3, "Auction's description must be at least 3 characters")
+        .max(1000)
+        .optional(),
       startingPrice: z
         .number({ error: "Starting price is required" })
         .min(0, "Starting price must be non-negative")
@@ -45,6 +54,16 @@ export const updateAuctionSchema = z.object({
   }),
   body: z
     .object({
+      title: z
+        .string({ error: "Auction's title is required" })
+        .min(3, "Auction's title must be at least 3 characters")
+        .max(50)
+        .optional(),
+      description: z
+        .string()
+        .min(3, "Auction's description must be at least 3 characters")
+        .max(1000)
+        .optional(),
       startingPrice: z.number().min(0).multipleOf(0.01).optional(),
       stepPrice: z
         .number()

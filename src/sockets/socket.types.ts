@@ -35,6 +35,7 @@ export interface ServerToClientEvents {
 
   "notification:new": (data: {
     id: string;
+    title: string;
     type: string;
     message: string;
     scope: string;

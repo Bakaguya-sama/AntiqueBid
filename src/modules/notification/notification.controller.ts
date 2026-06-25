@@ -115,9 +115,10 @@ export class NotificationController {
     next: NextFunction,
   ) {
     try {
-      const { userId, message, type } = req.body;
+      const { title, userId, message, type } = req.body;
       console.log(userId, message, type);
       const data = await notificationService.createPersonalNotification(
+        title,
         userId,
         message,
         type as NotificationType,
@@ -139,8 +140,9 @@ export class NotificationController {
     next: NextFunction,
   ) {
     try {
-      const { message, type } = req.body;
+      const { title, message, type } = req.body;
       const data = await notificationService.createSystemNotification(
+        title,
         message,
         type as NotificationType,
       );
@@ -161,9 +163,10 @@ export class NotificationController {
     next: NextFunction,
   ) {
     try {
-      const { userIds, message, type } = req.body;
+      const { title, userIds, message, type } = req.body;
       const data =
         await notificationService.createPersonalNotificationForManyRecipients(
+          title,
           userIds as string[],
           message,
           type as NotificationType,

@@ -121,6 +121,7 @@ export class NotificationService {
   }
 
   async createPersonalNotification(
+    title: string,
     userId: string,
     message: string,
     type: NotificationType,
@@ -135,6 +136,7 @@ export class NotificationService {
       );
 
     const noti = await notificationRepository.createNotification(
+      title,
       message,
       NotificationScope.personal,
       type,
@@ -145,6 +147,7 @@ export class NotificationService {
     const io = getIO();
     io.to(`notification:${userId}`).emit("notification:new", {
       id: noti.id,
+      title,
       message,
       type,
       scope: "personal",
@@ -156,11 +159,13 @@ export class NotificationService {
   }
 
   async createSystemNotification(
+    title: string,
     message: string,
     type: NotificationType,
     meta?: Record<string, unknown>,
   ) {
     const noti = await notificationRepository.createNotification(
+      title,
       message,
       NotificationScope.system,
       type,
@@ -171,6 +176,7 @@ export class NotificationService {
     const io = getIO();
     io.emit("notification:new", {
       id: noti.id,
+      title,
       message,
       type,
       scope: "system",
@@ -182,6 +188,7 @@ export class NotificationService {
   }
 
   async createPersonalNotificationForManyRecipients(
+    title: string,
     userIds: Array<string>,
     message: string,
     type: NotificationType,
@@ -198,6 +205,7 @@ export class NotificationService {
 
     const notis =
       await notificationRepository.createOneNotificationForManyRecipients(
+        title,
         message,
         NotificationScope.personal,
         type,
@@ -210,6 +218,7 @@ export class NotificationService {
     notis.forEach((ele) => {
       io.to(`notification:${ele.userId}`).emit("notification:new", {
         id: ele.id,
+        title,
         message,
         type,
         scope: "personal",
