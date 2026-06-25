@@ -37,9 +37,11 @@ export class AntiqueController {
   async createAntique(req: Request, res: Response, next: NextFunction) {
     try {
       const creatorId = req.user?.sub;
+      const { categoryId, ...data } = req.body;
       const antique = await antiqueService.createAntique(
         creatorId as string,
-        req.body,
+        categoryId as string,
+        data,
       );
 
       res.status(201).json({
@@ -56,10 +58,12 @@ export class AntiqueController {
     try {
       const creatorId = req.user?.sub;
       const antiqueId = req.params.id;
+      const { categoryId, ...data } = req.body;
       const antique = await antiqueService.updateAntique(
         antiqueId as string,
         creatorId as string,
-        req.body,
+        data,
+        categoryId,
       );
 
       res.status(200).json({

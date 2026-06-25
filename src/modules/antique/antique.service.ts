@@ -3,18 +3,25 @@ import { userRepository } from "@/repositories/user.repo";
 import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import { Prisma } from "generated/prisma/client";
+import { antiqueCategoryRepository } from "@/repositories/antique-category.repo";
 
 export class AntiqueService {
-  async createAntique(creatorId: string, data: Prisma.AntiqueCreateInput) {
-    if (!creatorId) throw new AppError(401, "Empty creatorId");
-
-    const existingCreator = await userRepository.findById(creatorId);
-    if (!existingCreator) throw new AppError(401, "Creator does not exist");
+  async createAntique(
+    creatorId: string,
+    categoryId: string,
+    data: Prisma.AntiqueCreateInput,
+  ) {
+    const existingCategory =
+      await antiqueCategoryRepository.findAntiqueCategoryById(categoryId);
+    if (!existingCategory) throw new AppError(400, "Category does not exist");
 
     const newAntique = await antiqueRepository.createOneAntique({
       ...data,
       antiqueCreator: {
         connect: { id: creatorId },
+      },
+      antiqueCategory: {
+        connect: { id: categoryId },
       },
     });
 
@@ -25,15 +32,13 @@ export class AntiqueService {
     antiqueId: string,
     creatorId: string,
     data: Prisma.AntiqueUpdateInput,
+    categoryId?: string,
   ) {
-    if (!creatorId) throw new AppError(401, "Empty creatorId");
-
-    const existingCreator = await userRepository.findById(creatorId);
-    if (!existingCreator) throw new AppError(401, "Creator does not exist");
-
     const existingAntique = await antiqueRepository.findById(antiqueId);
     if (!existingAntique) throw new AppError(400, "Antique does not exist");
-
+    if (existingAntique.deletedAt) {
+      throw new AppError(400, "This antique has already been deleted");
+    }
     if (existingAntique.createdBy !== creatorId) {
       throw new AppError(
         403,
@@ -41,17 +46,23 @@ export class AntiqueService {
       );
     }
 
-    if (existingAntique.deletedAt) {
-      throw new AppError(400, "This antique has already been deleted");
+    if (categoryId) {
+      const existingCategory =
+        await antiqueCategoryRepository.findAntiqueCategoryById(categoryId);
+      if (!existingCategory)
+        throw new AppError(400, "Category to update to does not exist");
     }
 
-    delete (data as any).antiqueCreator;
-    delete (data as any).createdBy;
+    // delete (data as any).antiqueCreator;
+    // delete (data as any).antiqueCategory;
+    // delete (data as any).createdBy;
 
-    const updatedAntique = await antiqueRepository.updateAntique(
-      antiqueId,
-      data,
-    );
+    const updatedAntique = await antiqueRepository.updateAntique(antiqueId, {
+      ...data,
+      ...(categoryId && {
+        antiqueCategory: { connect: { id: categoryId } },
+      }),
+    });
 
     return updatedAntique;
   }

@@ -69,6 +69,7 @@ class AntiqueCategoryRepository {
     return await prisma.antique.count({
       where: {
         categoryId: id,
+        deletedAt: null,
       },
     });
   }

@@ -2,10 +2,21 @@ import { Prisma, AntiqueStatus } from "generated/prisma/client";
 import { prisma } from "@/config/db.connection";
 import { paginationInput } from "@/types/pagination.types";
 import { PrismaTransactionClient } from "@/types/transaction.types";
+import { includes } from "zod";
 
 export class AntiqueRepository {
   async findById(antiqueId: string) {
-    return await prisma.antique.findUnique({ where: { id: antiqueId } });
+    return await prisma.antique.findUnique({
+      where: { id: antiqueId },
+      include: {
+        antiqueCategory: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
   }
 
   async findByIdList(antiqueIds: Array<string>, tx?: PrismaTransactionClient) {
@@ -24,6 +35,12 @@ export class AntiqueRepository {
             },
           },
         },
+        antiqueCategory: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
   }
@@ -40,6 +57,14 @@ export class AntiqueRepository {
       where: {
         id: {
           in: antiqueIds,
+        },
+      },
+      include: {
+        antiqueCategory: {
+          select: {
+            name: true,
+            slug: true,
+          },
         },
       },
     });
@@ -69,6 +94,14 @@ export class AntiqueRepository {
           auctionAntiques: {
             some: {
               auctionId,
+            },
+          },
+        },
+        include: {
+          antiqueCategory: {
+            select: {
+              name: true,
+              slug: true,
             },
           },
         },
@@ -111,6 +144,14 @@ export class AntiqueRepository {
           },
         },
       },
+      include: {
+        antiqueCategory: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
       select: {
         id: true,
       },
@@ -123,6 +164,14 @@ export class AntiqueRepository {
     const [data, total] = await Promise.all([
       prisma.antique.findMany({
         where: { createdBy: creatorId, deletedAt: null },
+        include: {
+          antiqueCategory: {
+            select: {
+              name: true,
+              slug: true,
+            },
+          },
+        },
         skip: filter.skip,
         take: filter.take,
         orderBy: { createdAt: "desc" },

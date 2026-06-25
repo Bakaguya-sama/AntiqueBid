@@ -1,6 +1,7 @@
 import z from "zod";
 import { paginationSchema } from "@/types/pagination.types";
 const antiqueStatus = ["available", "unavailable"] as const;
+const uuidSchema = z.uuidv4("Invalid ID format");
 
 export const getAntiqueSchema = z.object({
   params: z.object({
@@ -39,6 +40,7 @@ export const createAntiqueSchema = z.object({
       .string({ error: "Description is required" })
       .min(3, "Antique's description must be at least 3 characters")
       .max(1000),
+    categoryId: uuidSchema,
   }),
 });
 
@@ -58,5 +60,6 @@ export const updateAntiqueSchema = z.object({
       .max(1000)
       .optional(),
     status: z.enum(antiqueStatus, { error: "Invalid status" }).optional(),
+    categoryId: uuidSchema.optional(),
   }),
 });
