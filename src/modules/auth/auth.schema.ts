@@ -9,11 +9,34 @@ export const loginSchema = z.object({
   }),
 });
 
+export const sendOtpSchema = z.object({
+  body: z.object({
+    email: z.email({ error: "email is required" }),
+  }),
+});
+
+export const verifyOtpSchema = z.object({
+  body: z.object({
+    email: z.email({ error: "email is required" }),
+    otp: z.string({ error: "OTP is required" }).length(6),
+  }),
+});
+
+export const changePasswordSchema = z.object({
+  body: z.object({
+    email: z.email({ error: "email is required" }),
+    verifiedToken: z.string({ error: "token is required" }),
+    oldPassword: z.string({ error: "Old password is required" }),
+    newPassword: z.string({ error: "New password is required" }),
+  }),
+});
+
 export const registerSchema = z.object({
   body: z
     .object({
+      verifiedToken: z.string({ error: "token is required" }),
       email: z.email({ error: "Invalid email format" }).toLowerCase(),
-      username: z
+      userName: z
         .string({ error: "username is required" })
         .min(3, "username must be at least 3 characters")
         .max(50)
@@ -21,7 +44,7 @@ export const registerSchema = z.object({
           /^[a-zA-Z0-9_]+$/,
           "Username can only contain letters, numbers, underscore",
         ),
-      fullname: z
+      fullName: z
         .string({ error: "fullname is required" })
         .min(2, "fullname must be at least 3 characters")
         .max(100),

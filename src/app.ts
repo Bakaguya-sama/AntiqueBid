@@ -8,6 +8,7 @@ import antiqueRoute from "@/modules/antique/antique.routes";
 import auctionRoute from "@/modules/auction/auction.routes";
 import notificationRoute from "@/modules/notification/notification.routes";
 import categoryRoute from "@/modules/antique-category/antique-category.routes";
+import userRoute from "@/modules/user/user.routes";
 import { authenticate } from "./middlewares/auth.middleware";
 import { errorHandler } from "./middlewares/global-error-handler.middleware";
 import { userOnly, adminOnly, anyUser } from "./middlewares/role.middleware";
@@ -31,6 +32,7 @@ app.use("/api/v1/antique", authenticate, userOnly, antiqueRoute);
 app.use("/api/v1/auction", authenticate, userOnly, auctionRoute);
 app.use("/api/v1/notification", authenticate, anyUser, notificationRoute);
 app.use("/api/v1/category", authenticate, categoryRoute);
+app.use("/api/v1/users", authenticate, anyUser, userRoute);
 
 app.use(errorHandler);
 

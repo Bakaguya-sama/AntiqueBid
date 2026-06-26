@@ -1,0 +1,37 @@
+import { userService } from "./user.service";
+import { Request, Response, NextFunction } from "express";
+
+export class UserController {
+  async updateMyProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.sub as string;
+
+      const updated = await userService.updateProfile(userId, req.body);
+
+      res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+        data: updated,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMyProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.sub as string;
+
+      const profile = await userService.getProfile(userId);
+
+      res.status(200).json({
+        success: true,
+        data: profile,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+export const userController = new UserController();

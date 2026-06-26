@@ -41,6 +41,15 @@ export class UserRepository {
     return user;
   }
 
+  async updateByEmail(email: string, data: Prisma.UserUpdateInput) {
+    const user = await prisma.user.update({
+      where: { email },
+      data,
+    });
+
+    return user;
+  }
+
   async getAllUsers(filter: paginationInput) {
     const res = await prisma.user.findMany({
       skip: filter.skip,

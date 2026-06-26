@@ -46,14 +46,13 @@ model User {
   email String @unique
   password String?
   role UserRole @default(user)
-  isActive Boolean @default(true)    
+  isActive Boolean @default(false)    
   lastLoginAt DateTime?  @db.Timestamptz(3)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
   antique_creator Antique[] @relation("AntiqueCreator")
-  otp_use OTPUser[] @relation("OtpUse")
   identity UserIdentity[] @relation("Identity")
   auction_seller Auction[] @relation("AuctionSeller")
   auction_winner Auction[] @relation("AuctionWinner")
@@ -76,17 +75,6 @@ model UserIdentity {
 
   @@unique([provider, providerId])
   @@unique([userId, provider])
-}
-
-model OTPUser {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @db.Uuid
-  otpCode String 
-  expiresAt DateTime @db.Timestamptz(3)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  isUsed Boolean @default(false)
-
-  user User @relation("OtpUse", fields: [userId], references: [id])
 }
 
 model Antique {

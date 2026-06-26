@@ -3,12 +3,44 @@ import { authService } from "./auth.service";
 import { jwtConfig } from "@/config/jwt.config";
 import { jwtService, JwtService } from "@/services/jwt.service";
 import passport from "@/config/passport.config";
-import { AppError } from "@/utils/app-error.utils";
 
 export class AuthController {
+  async sendRegisterOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      await authService.sendVerifyEmail(email, "register");
+
+      res.status(201).json({
+        success: true,
+        message: "OTP was send to email successfully.",
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async verifyRegisterOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, otp } = req.body;
+      const token = await authService.verifyEmail(email, otp, "register", 600);
+
+      res.status(201).json({
+        success: true,
+        message: "Email was verified.",
+        data: {
+          token,
+        },
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await authService.register(req.body);
+      const { verifiedToken, ...data } = req.body;
+      delete data.confirmPassword;
+      const user = await authService.register(data, verifiedToken);
 
       res.status(201).json({
         message: "Register successfully!.",
@@ -82,6 +114,65 @@ export class AuthController {
         data: { accessToken, refreshToken },
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async sendChangePasswordOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+      await authService.sendVerifyEmail(email, "reset_password");
+
+      res.status(201).json({
+        success: true,
+        message: "OTP was send to email successfully.",
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async verifyChangePasswordOtp(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { email, otp } = req.body;
+      const token = await authService.verifyEmail(
+        email,
+        otp,
+        "reset_password",
+        300,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Email was verified.",
+        data: {
+          token,
+        },
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, verifiedToken, oldPassword, newPassword } = req.body;
+      await authService.changePassword(
+        email,
+        verifiedToken,
+        oldPassword,
+        newPassword,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Password has been changed successfully.",
+      });
+    } catch (error: any) {
       next(error);
     }
   }
