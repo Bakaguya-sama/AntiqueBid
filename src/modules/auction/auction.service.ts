@@ -23,6 +23,7 @@ import util from "util";
 import { redisService } from "@/services/redis.service";
 import { notificationService } from "../notification/notification.service";
 import { getIO } from "@/config/socket.config";
+import { antiqueCacheService } from "@/services/antique-cache.service";
 
 interface AntiqueWithAuctionResult {
   id: string;
@@ -430,8 +431,10 @@ export class AuctionService {
         tx,
       );
 
+      let soldAntiques = null;
+
       if (finishedAuction.winnerId) {
-        const soldAntiques = await antiqueRepository.findAllByAuctionId(
+        soldAntiques = await antiqueRepository.findAllByAuctionId(
           auctionId,
           tx,
         );
@@ -447,6 +450,7 @@ export class AuctionService {
 
       return {
         finishedAuction,
+        soldAntiques,
         title: finishedAuction.title,
         winner: finishedAuction.winnerId,
         seller: finishedAuction.sellerId,
@@ -462,6 +466,8 @@ export class AuctionService {
       finished.seller,
       finished.highestBid,
     );
+
+    await antiqueCacheService.invalidateMany(finished.soldAntiques);
 
     return finished.finishedAuction;
   }

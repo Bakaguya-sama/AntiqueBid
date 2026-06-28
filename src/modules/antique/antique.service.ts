@@ -4,6 +4,8 @@ import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import { Prisma } from "generated/prisma/client";
 import { antiqueCategoryRepository } from "@/repositories/antique-category.repo";
+import { antiqueCacheService } from "@/services/antique-cache.service";
+import redis from "@/config/redis.connection";
 
 export class AntiqueService {
   async createAntique(
@@ -64,6 +66,8 @@ export class AntiqueService {
       }),
     });
 
+    await antiqueCacheService.invalidate(antiqueId);
+
     return updatedAntique;
   }
 
@@ -98,10 +102,20 @@ export class AntiqueService {
       throw new Error("Cannot delete sold antique was in active auction");
     }
 
-    return await antiqueRepository.deleteAntique(antiqueId);
+    const deleted = await antiqueRepository.deleteAntique(antiqueId);
+
+    await antiqueCacheService.invalidate(antiqueId);
+
+    return deleted;
   }
 
   async getAntique(antiqueId: string) {
+    const cachedData = await antiqueCacheService.getCacheData(antiqueId);
+
+    if (cachedData) {
+      return cachedData;
+    }
+
     const existingAntique = await antiqueRepository.findById(antiqueId);
 
     if (!existingAntique)
@@ -110,6 +124,8 @@ export class AntiqueService {
     if (existingAntique.deletedAt) {
       throw new AppError(400, "This antique has already been deleted");
     }
+
+    await antiqueCacheService.setCacheData(antiqueId, existingAntique);
 
     return existingAntique;
   }
