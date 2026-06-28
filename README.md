@@ -105,6 +105,20 @@ npm run dev
 
 The server will be available at `http://localhost:3000`.
 
+### API Base URL
+
+```
+http://localhost:3000/api/v1
+```
+
+### Bull Board (Dev only)
+
+Monitor BullMQ job queues in your browser:
+
+```
+http://localhost:3000/admin/queues
+```
+
 ## Roadmap
 
 - [ ] Distributed Mutex Lock (`SETNX`) for Cache Stampede prevention
