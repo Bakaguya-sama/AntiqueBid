@@ -48,3 +48,19 @@ process.on("unhandledRejection", (err: any) => {
     process.exit(1);
   });
 });
+
+import fs from "fs";
+import path from "path";
+
+// Redirect console.log ra file khi cần debug
+const logFile = fs.createWriteStream(
+  path.join(process.cwd(), "debug.log"),
+  { flags: "w" }, // "w" = ghi đè mỗi lần start | "a" = append
+);
+
+const originalLog = console.log;
+console.log = (...args) => {
+  const message = args.map(String).join(" ");
+  logFile.write(`${message}\n`);
+  originalLog(...args); // Vẫn hiện trên terminal
+};

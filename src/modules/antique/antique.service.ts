@@ -5,7 +5,6 @@ import { AppError } from "@/utils/app-error.utils";
 import { Prisma } from "generated/prisma/client";
 import { antiqueCategoryRepository } from "@/repositories/antique-category.repo";
 import { antiqueCacheService } from "@/services/antique-cache.service";
-import redis from "@/config/redis.connection";
 
 export class AntiqueService {
   async createAntique(
@@ -110,22 +109,21 @@ export class AntiqueService {
   }
 
   async getAntique(antiqueId: string) {
-    const cachedData = await antiqueCacheService.getCacheData(antiqueId);
+    const existingAntique = await antiqueCacheService.getOrFetch(
+      antiqueId,
+      async () => {
+        const antique = await antiqueRepository.findById(antiqueId);
 
-    if (cachedData) {
-      return cachedData;
-    }
+        if (!antique || antique.deletedAt) return null;
 
-    const existingAntique = await antiqueRepository.findById(antiqueId);
+        return antique;
+      },
+    );
 
     if (!existingAntique)
       throw new AppError(400, "This antique does not exist");
 
-    if (existingAntique.deletedAt) {
-      throw new AppError(400, "This antique has already been deleted");
-    }
-
-    await antiqueCacheService.setCacheData(antiqueId, existingAntique);
+    console.log("antique: ", existingAntique);
 
     return existingAntique;
   }
