@@ -166,7 +166,7 @@ export class AuctionController {
   ) {
     try {
       const top = req.query.top;
-      const auctions = await trendingService.getTopTrending(
+      const auctions = await auctionService.getTopTrendingAuctionsInDetail(
         top ? (top as unknown as number) : undefined,
       );
 

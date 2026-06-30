@@ -678,6 +678,17 @@ export class AuctionService {
 
     trendingService.removeAuction(auctionId);
   }
+
+  async getTopTrendingAuctionsInDetail(limit?: number) {
+    const ids = await trendingService.getTopTrending(limit);
+
+    if (!ids.length)
+      throw new AppError(400, "There are not any trending auctions right now");
+
+    const auctions = await auctionRepository.findByManyIds(ids);
+
+    return auctions;
+  }
 }
 
 export const auctionService = new AuctionService();
