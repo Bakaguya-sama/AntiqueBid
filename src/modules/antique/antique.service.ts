@@ -4,7 +4,7 @@ import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import { Prisma } from "generated/prisma/client";
 import { antiqueCategoryRepository } from "@/repositories/antique-category.repo";
-import { antiqueCacheService } from "@/services/antique-cache.service";
+import { antiqueCacheService } from "@/services/redis/antique-cache.service";
 
 export class AntiqueService {
   async createAntique(

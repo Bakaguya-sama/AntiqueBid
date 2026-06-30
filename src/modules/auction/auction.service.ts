@@ -18,12 +18,13 @@ import {
   scheduleAuctionStart,
   rescheduleAuctionStart,
   removeJobFromAuctionQueue,
-} from "@/queues/auction.queue";
+} from "@/queues/auction/auction.queue";
 import util from "util";
-import { redisService } from "@/services/redis.service";
+import { redisService } from "@/services/redis/redis.service";
 import { notificationService } from "../notification/notification.service";
 import { getIO } from "@/config/socket.config";
-import { antiqueCacheService } from "@/services/antique-cache.service";
+import { antiqueCacheService } from "@/services/redis/antique-cache.service";
+import { trendingService } from "@/services/redis/trending.service";
 
 interface AntiqueWithAuctionResult {
   id: string;
@@ -585,7 +586,6 @@ export class AuctionService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
 
-      console.log(bid.newEndsAt);
       if (bid.newEndsAt) {
         await rescheduleAuctionFinish(auctionId, bid.newEndsAt);
       }
@@ -598,6 +598,15 @@ export class AuctionService {
         bidTime: new Date().toISOString(),
         newEndsAt: bid.newEndsAt?.toISOString(),
       });
+
+      trendingService
+        .incrementScore(auctionId, 1)
+        .catch((err) =>
+          console.error(
+            `[Trending] Failed to update score for ${auctionId}:`,
+            err,
+          ),
+        );
 
       return bid.newBid;
     } catch (error: any) {
@@ -666,6 +675,8 @@ export class AuctionService {
         NotificationType.auction_update,
       ),
     ]);
+
+    trendingService.removeAuction(auctionId);
   }
 }
 

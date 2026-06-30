@@ -4,7 +4,7 @@ import { AppError } from "@/utils/app-error.utils";
 import { jwtService } from "@/services/jwt.service";
 import { Prisma, User } from "../../../generated/prisma/client";
 import { loginInput } from "@/types/auth.types";
-import { redisService } from "@/services/redis.service";
+import { redisService } from "@/services/redis/redis.service";
 import { OtpPurpose, otpService } from "./otp.service";
 import { sendMail } from "@/services/nodemailer.service";
 import { userIdentityRepository } from "@/repositories/user-identity.repo";

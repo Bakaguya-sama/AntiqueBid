@@ -1,7 +1,7 @@
 import { Response, NextFunction, Request } from "express";
 import { jwtService } from "@/services/jwt.service";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
-import { redisService } from "@/services/redis.service";
+import { redisService } from "@/services/redis/redis.service";
 
 export const authenticate = async (
   req: Request,

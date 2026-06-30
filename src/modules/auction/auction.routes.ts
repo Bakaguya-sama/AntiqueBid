@@ -7,6 +7,7 @@ import {
   cancelAuctionSchema,
   placeBidSchema,
   getBidsOfAuctionSchema,
+  getTopTrendingAuctionsSchema,
 } from "./auction.schema";
 import { validate } from "@/middlewares/validate.middleware";
 import { auctionController } from "./auction.controller";
@@ -17,6 +18,12 @@ route.get(
   "/:id",
   validate(getAuctionByIdSchema),
   auctionController.getAuctionById,
+);
+
+route.get(
+  "/trending",
+  validate(getTopTrendingAuctionsSchema),
+  auctionController.getTopTrendingAuctions,
 );
 
 route.get(
