@@ -144,14 +144,6 @@ export class AntiqueRepository {
           },
         },
       },
-      include: {
-        antiqueCategory: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-      },
       select: {
         id: true,
       },
