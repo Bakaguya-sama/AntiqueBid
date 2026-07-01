@@ -3,11 +3,21 @@ import { antiqueCategoryRepository } from "@/repositories/antique-category.repo"
 import { AppError } from "@/utils/app-error.utils";
 import { paginationInput } from "@/types/pagination.types";
 import { Prisma } from "generated/prisma/client";
+import { antiqueCategoryCacheService } from "@/services/redis/antique-category-cache.service";
 
 export class AntiqueCategoryService {
   async getAntiqueCategoryById(id: string) {
-    const existing =
-      await antiqueCategoryRepository.findAntiqueCategoryById(id);
+    const existing = await antiqueCategoryCacheService.getOrFetch(
+      id,
+      async () => {
+        const category =
+          await antiqueCategoryRepository.findAntiqueCategoryById(id);
+
+        if (!category) return null;
+
+        return category;
+      },
+    );
 
     if (!existing) throw new AppError(401, "Antique category does not exist");
     return existing;
@@ -30,7 +40,14 @@ export class AntiqueCategoryService {
 
     if (!existing) throw new AppError(401, "Antique category does not exist");
 
-    return await antiqueCategoryRepository.updateOneAntiqueCategory(id, data);
+    const updated = await antiqueCategoryRepository.updateOneAntiqueCategory(
+      id,
+      data,
+    );
+
+    await antiqueCategoryCacheService.invalidate(id);
+
+    return updated;
   }
 
   async deleteAntiqueCategory(id: string) {
@@ -49,6 +66,8 @@ export class AntiqueCategoryService {
       );
 
     await antiqueCategoryRepository.deleteOneAntiqueCategory(id);
+
+    await antiqueCategoryCacheService.invalidate(id);
   }
 }
 

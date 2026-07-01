@@ -23,8 +23,8 @@ import util from "util";
 import { redisService } from "@/services/redis/redis.service";
 import { notificationService } from "../notification/notification.service";
 import { getIO } from "@/config/socket.config";
-import { antiqueCacheService } from "@/services/redis/antique-cache.service";
 import { trendingService } from "@/services/redis/trending.service";
+import { antiqueCacheService } from "@/services/redis/antique-cache.service";
 
 interface AntiqueWithAuctionResult {
   id: string;

@@ -3,8 +3,8 @@ import { userRepository } from "@/repositories/user.repo";
 import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import { Prisma } from "generated/prisma/client";
-import { antiqueCategoryRepository } from "@/repositories/antique-category.repo";
 import { antiqueCacheService } from "@/services/redis/antique-cache.service";
+import { antiqueCategoryService } from "../antique-category/antique-category.service";
 
 export class AntiqueService {
   async createAntique(
@@ -13,8 +13,8 @@ export class AntiqueService {
     data: Prisma.AntiqueCreateInput,
   ) {
     const existingCategory =
-      await antiqueCategoryRepository.findAntiqueCategoryById(categoryId);
-    if (!existingCategory) throw new AppError(400, "Category does not exist");
+      await antiqueCategoryService.getAntiqueCategoryById(categoryId);
+    // if (!existingCategory) throw new AppError(400, "Category does not exist");
 
     const newAntique = await antiqueRepository.createOneAntique({
       ...data,
@@ -49,9 +49,9 @@ export class AntiqueService {
 
     if (categoryId) {
       const existingCategory =
-        await antiqueCategoryRepository.findAntiqueCategoryById(categoryId);
-      if (!existingCategory)
-        throw new AppError(400, "Category to update to does not exist");
+        await antiqueCategoryService.getAntiqueCategoryById(categoryId);
+      // if (!existingCategory)
+      //   throw new AppError(400, "Category to update to does not exist");
     }
 
     // delete (data as any).antiqueCreator;

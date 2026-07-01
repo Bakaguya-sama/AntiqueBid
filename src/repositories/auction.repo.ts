@@ -30,7 +30,16 @@ export class AuctionRepository {
         auction_bid: true,
         auctionAntiques: {
           select: {
-            antique: true,
+            antique: {
+              include: {
+                antiqueCategory: {
+                  select: {
+                    name: true,
+                    slug: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
