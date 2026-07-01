@@ -69,6 +69,7 @@ export abstract class BaseCacheService {
     try {
       const key = this.getKey(id);
       await redis.del(key);
+      console.log("Key invalidated");
     } catch (error) {}
   }
 

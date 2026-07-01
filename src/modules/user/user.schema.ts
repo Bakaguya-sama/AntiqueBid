@@ -17,3 +17,9 @@ export const updateProfileSchema = z.object({
     })
     .strict(),
 });
+
+export const getUserByIdSchema = z.object({
+  params: z.object({
+    id: uuidSchema,
+  }),
+});
