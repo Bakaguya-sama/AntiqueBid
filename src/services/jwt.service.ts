@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { jwtConfig } from "@/config/jwt.config";
 import { AccessTokenPayload, RefreshTokenPayload } from "@/types/jwt.types";
 import { prisma } from "@/config/db.connection";
-import { redisService } from "./redis.service";
+import { redisService } from "./redis/redis.service";
 import bcript from "bcrypt";
 
 export class JwtService {

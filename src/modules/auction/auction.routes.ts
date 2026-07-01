@@ -7,11 +7,25 @@ import {
   cancelAuctionSchema,
   placeBidSchema,
   getBidsOfAuctionSchema,
+  getTopTrendingAuctionsSchema,
+  finishAuctionSchema,
 } from "./auction.schema";
 import { validate } from "@/middlewares/validate.middleware";
 import { auctionController } from "./auction.controller";
 
 const route = Router();
+
+route.get(
+  "/trending",
+  validate(getTopTrendingAuctionsSchema),
+  auctionController.getTopTrendingAuctions,
+);
+
+route.post(
+  "/create",
+  validate(createAuctionSchema),
+  auctionController.createAuction,
+);
 
 route.get(
   "/:id",
@@ -23,12 +37,6 @@ route.get(
   "/seller/:id",
   validate(getAuctionBySellerSchema),
   auctionController.getAuctionBySellerId,
-);
-
-route.post(
-  "/create",
-  validate(createAuctionSchema),
-  auctionController.createAuction,
 );
 
 route.patch(
@@ -45,7 +53,7 @@ route.patch(
 
 route.patch(
   "/:id/finish",
-  validate(cancelAuctionSchema),
+  validate(finishAuctionSchema),
   auctionController.finishAuction,
 );
 

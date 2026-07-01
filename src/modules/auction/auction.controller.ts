@@ -1,3 +1,4 @@
+import { trendingService } from "@/services/redis/trending.service";
 import { auctionService } from "./auction.service";
 import { Request, Response, NextFunction } from "express";
 
@@ -157,6 +158,26 @@ export class AuctionController {
   //       next(error);
   //     }
   //   }
+
+  async getTopTrendingAuctions(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const top = req.query.top;
+      const auctions = await auctionService.getTopTrendingAuctionsInDetail(
+        top ? (top as unknown as number) : undefined,
+      );
+
+      res.status(200).json({
+        success: true,
+        data: auctions,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }
 
 export const auctionController = new AuctionController();

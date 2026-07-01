@@ -1,7 +1,7 @@
 import { userController } from "./user.controller";
 import { validate } from "@/middlewares/validate.middleware";
 import { Router } from "express";
-import { updateProfileSchema } from "./user.schema";
+import { updateProfileSchema, getUserByIdSchema } from "./user.schema";
 
 const route = Router();
 
@@ -12,5 +12,7 @@ route.patch(
   validate(updateProfileSchema),
   userController.updateMyProfile,
 );
+
+route.get("/:id", validate(getUserByIdSchema), userController.getUser);
 
 export default route;

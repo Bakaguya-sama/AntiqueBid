@@ -1,7 +1,8 @@
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressAdapter } from "@bull-board/express";
-import { auctionQueue } from "@/queues/auction.queue";
+import { auctionQueue } from "@/queues/auction/auction.queue";
+import { trendingQueue } from "@/queues/trending/trending.queue";
 import { Express } from "express";
 
 export function setupBullBoard(app: Express) {
@@ -11,7 +12,7 @@ export function setupBullBoard(app: Express) {
   serverAdapter.setBasePath("/admin/queues");
 
   createBullBoard({
-    queues: [new BullMQAdapter(auctionQueue)],
+    queues: [new BullMQAdapter(auctionQueue), new BullMQAdapter(trendingQueue)],
     serverAdapter,
   });
 

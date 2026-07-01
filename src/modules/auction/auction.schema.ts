@@ -163,5 +163,14 @@ export const getBidsOfAuctionSchema = z.object({
   query: paginationSchema.optional(),
 });
 
+export const getTopTrendingAuctionsSchema = z.object({
+  query: z.object({
+    top: z
+      .number()
+      .min(10, "The value of top trending has to be at least 10.")
+      .optional(),
+  }),
+});
+
 export type CreateAuctionInput = z.infer<typeof createAuctionSchema>["body"];
 export type UpdateAuctionInput = z.infer<typeof updateAuctionSchema>["body"];

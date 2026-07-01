@@ -32,6 +32,21 @@ export class UserController {
       next(error);
     }
   }
+
+  async getUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.params.id as string;
+
+      const user = await userService.getProfile(userId);
+
+      res.status(200).json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const userController = new UserController();

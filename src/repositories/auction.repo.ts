@@ -18,6 +18,34 @@ export class AuctionRepository {
     });
   }
 
+  async findByManyIds(auctionIds: string[], tx?: PrismaTransactionClient) {
+    const client = tx ?? prisma;
+    return await client.auction.findMany({
+      where: {
+        id: {
+          in: auctionIds,
+        },
+      },
+      include: {
+        auction_bid: true,
+        auctionAntiques: {
+          select: {
+            antique: {
+              include: {
+                antiqueCategory: {
+                  select: {
+                    name: true,
+                    slug: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findBySellerId(sellerId: string, filter: paginationInput) {
     const [data, total] = await Promise.all([
       prisma.auction.findMany({
