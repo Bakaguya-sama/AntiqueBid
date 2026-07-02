@@ -59,7 +59,7 @@ export class AuthService {
 
     if (!data.username) throw new AppError(400, "Empty username");
 
-    const user = await userRepository.findByUsername(data.username);
+    const user = await userRepository.findByUsernameAuth(data.username);
 
     if (!user) {
       await redisService.incrementLoginAttempts(data.clientIp);
@@ -253,7 +253,7 @@ export class AuthService {
       throw new AppError(400, "Email does not match verification");
     }
 
-    const user = await userRepository.findByEmail(email);
+    const user = await userRepository.findByEmailAuth(email);
     if (!user) throw new AppError(404, "User not found");
     if (user.deletedAt) throw new AppError(401, "User account was deleted");
 

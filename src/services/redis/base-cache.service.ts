@@ -1,5 +1,6 @@
 import redis from "@/config/redis.connection";
 import { mutexLockService } from "./mutex-lock.service";
+import { randomUUID } from "node:crypto";
 
 export abstract class BaseCacheService {
   protected abstract readonly ttl: number;
@@ -37,7 +38,7 @@ export abstract class BaseCacheService {
         return data;
       } catch (error) {
       } finally {
-        mutexLockService.release(lockKey);
+        await mutexLockService.release(lockKey);
       }
     }
 
@@ -45,6 +46,85 @@ export abstract class BaseCacheService {
       `[Mutex] Timeout waiting for lock: ${lockKey}, fallback to DB`,
     );
     return await fetchFn();
+  }
+
+  async getOrFetchMany<T>(
+    ids: string[],
+    fetchFn: (missedIds: string[]) => Promise<T[]>,
+    getIdFromItem: (item: T) => string,
+  ): Promise<T[]> {
+    if (!ids.length) return [];
+
+    const uniqueIds = [...new Set(ids)];
+
+    const { result: cachedItems, missedIds } =
+      await this.getCacheDataFromKeys<T>(uniqueIds);
+
+    if (missedIds.length === 0) {
+      console.log(`[CACHE HIT ALL] ${this.keyPrefix} ids: ${uniqueIds.length}`);
+      return cachedItems;
+    }
+
+    const lockKey = `${this.keyPrefix}:many:${[...missedIds].sort().join(",")}`;
+    const acquired = await mutexLockService.acquireWithRetry(lockKey);
+
+    const { result: cachedAfterLock, missedIds: stillMissed } =
+      await this.getCacheDataFromKeys<T>(missedIds);
+
+    if (stillMissed.length === 0) {
+      console.log(
+        `[LOCK HIT] ${this.keyPrefix} → all populated by other request`,
+      );
+      if (acquired) await mutexLockService.release(lockKey);
+      return [...cachedItems, ...cachedAfterLock];
+    }
+
+    if (acquired) {
+      console.log(
+        `[DB QUERY] ${this.keyPrefix} missedIds: ${stillMissed.length}`,
+      );
+      try {
+        const fetchedItems = await fetchFn(stillMissed);
+
+        await Promise.all(
+          fetchedItems.map((item) =>
+            this.setCacheData(getIdFromItem(item), item),
+          ),
+        );
+
+        return [...cachedItems, ...cachedAfterLock, ...fetchedItems];
+      } finally {
+        await mutexLockService.release(lockKey);
+      }
+    }
+
+    console.warn(`[MUTEX TIMEOUT] ${this.keyPrefix} → fallback to DB`);
+    return fetchFn(uniqueIds);
+  }
+
+  async getCacheDataFromKeys<T>(ids: string[]): Promise<{
+    result: T[];
+    missedIds: string[];
+  }> {
+    try {
+      const keys = ids.map((id) => this.getKey(id));
+      const cached = await redis.mget(...keys);
+
+      const result: T[] = [];
+      const missedIds: string[] = [];
+
+      cached.forEach((value, index) => {
+        if (value) {
+          result.push(JSON.parse(value) as T);
+        } else {
+          missedIds.push(ids[index]);
+        }
+      });
+
+      return { result, missedIds };
+    } catch (error) {
+      return { result: [], missedIds: ids };
+    }
   }
 
   async getCacheData<T>(id: string): Promise<T | null> {

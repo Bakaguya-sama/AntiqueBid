@@ -27,6 +27,19 @@ export class UserService {
 
     return existingUser;
   }
+
+  async getManyUsers(userIds: string[]) {
+    const existingUsers = await userCacheService.getOrFetchMany(
+      userIds,
+      (missedIds) => userRepository.findByManyIds(missedIds),
+      (user) => user.id,
+    );
+
+    if (existingUsers.length === 0)
+      throw new AppError(400, "These users do not exist");
+
+    return existingUsers;
+  }
 }
 
 export const userService = new UserService();

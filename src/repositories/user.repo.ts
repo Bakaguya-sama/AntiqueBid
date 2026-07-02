@@ -2,16 +2,43 @@ import { prisma } from "@/config/db.connection";
 import { Prisma } from "../../generated/prisma/client";
 import { paginationInput } from "@/types/pagination.types";
 export class UserRepository {
-  async findByEmail(email: string) {
+  async findByEmailAuth(email: string) {
     return await prisma.user.findUnique({ where: { email } });
   }
 
-  async findByUsername(username: string) {
+  async findByUsernameAuth(username: string) {
     return await prisma.user.findUnique({ where: { userName: username } });
   }
 
-  async findById(id: string) {
+  async findByIdAuth(id: string) {
     return await prisma.user.findUnique({ where: { id } });
+  }
+
+  async findByEmail(email: string) {
+    return await prisma.user.findUnique({
+      where: { email },
+      omit: {
+        password: true,
+      },
+    });
+  }
+
+  async findByUsername(username: string) {
+    return await prisma.user.findUnique({
+      where: { userName: username },
+      omit: {
+        password: true,
+      },
+    });
+  }
+
+  async findById(id: string) {
+    return await prisma.user.findUnique({
+      where: { id },
+      omit: {
+        password: true,
+      },
+    });
   }
 
   async findByManyIds(ids: Array<string>) {
@@ -20,6 +47,10 @@ export class UserRepository {
         id: {
           in: ids,
         },
+        deletedAt: null,
+      },
+      omit: {
+        password: true,
       },
     });
   }
@@ -56,6 +87,9 @@ export class UserRepository {
       take: filter.take,
       orderBy: {
         userName: "asc",
+      },
+      omit: {
+        password: true,
       },
     });
     return res;
