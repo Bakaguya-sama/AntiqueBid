@@ -47,6 +47,21 @@ export class UserController {
       next(error);
     }
   }
+
+  async getUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userIds = req.query.ids as string[];
+
+      const users = await userService.getManyUsers(userIds);
+
+      res.status(200).json({
+        success: true,
+        data: users,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const userController = new UserController();

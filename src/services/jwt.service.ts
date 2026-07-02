@@ -2,9 +2,8 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { jwtConfig } from "@/config/jwt.config";
 import { AccessTokenPayload, RefreshTokenPayload } from "@/types/jwt.types";
-import { prisma } from "@/config/db.connection";
 import { redisService } from "./redis/redis.service";
-import bcript from "bcrypt";
+import { userRepository } from "@/repositories/user.repo";
 
 export class JwtService {
   generateAccessToken(payload: Omit<AccessTokenPayload, "jti">): string {
@@ -91,11 +90,7 @@ export class JwtService {
       return null;
     }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+    const user = await userRepository.findById(userId);
     if (!user) return null;
 
     const newAccessToken = this.generateAccessToken({

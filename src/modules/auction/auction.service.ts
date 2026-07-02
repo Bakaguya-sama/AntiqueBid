@@ -1,6 +1,5 @@
 import { antiqueRepository } from "@/repositories/antique.repo";
 import { auctionRepository } from "@/repositories/auction.repo";
-import { userRepository } from "@/repositories/user.repo";
 import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import {
@@ -25,6 +24,7 @@ import { notificationService } from "../notification/notification.service";
 import { getIO } from "@/config/socket.config";
 import { trendingService } from "@/services/redis/trending.service";
 import { antiqueCacheService } from "@/services/redis/antique-cache.service";
+import { userService } from "../user/user.service";
 
 interface AntiqueWithAuctionResult {
   id: string;
@@ -46,12 +46,11 @@ export class AuctionService {
   }
 
   async getAuctionBySeller(sellerId: string, filter: paginationInput) {
-    const existingSeller = await userRepository.findById(sellerId);
+    const existingSeller = await userService.getProfile(sellerId);
 
-    if (!existingSeller) throw new AppError(400, "This seller does not exist");
-
-    if (existingSeller.deletedAt)
-      throw new AppError(400, "This seller has already been deleted");
+    // if (!existingSeller) throw new AppError(400, "This seller does not exist");
+    // if (existingSeller.deletedAt)
+    //   throw new AppError(400, "This seller has already been deleted");
 
     const auctionList = await auctionRepository.findBySellerId(
       sellerId,
@@ -66,12 +65,10 @@ export class AuctionService {
     data: Prisma.AuctionCreateInput,
     antiqueIds: Array<string>,
   ) {
-    const existingSeller = await userRepository.findById(sellerId);
-
-    if (!existingSeller) throw new AppError(400, "This seller does not exist");
-
-    if (existingSeller.deletedAt)
-      throw new AppError(400, "This seller has already been deleted");
+    const existingSeller = await userService.getProfile(sellerId);
+    // if (!existingSeller) throw new AppError(400, "This seller does not exist");
+    // if (existingSeller.deletedAt)
+    //   throw new AppError(400, "This seller has already been deleted");
 
     return await prisma.$transaction(async (tx) => {
       const antiquesToValidate = await antiqueRepository.findByIdList(
@@ -160,8 +157,8 @@ export class AuctionService {
     data: Prisma.AuctionUpdateInput,
     updatedAntiqueIds?: Array<string>,
   ) {
-    const seller = await userRepository.findById(sellerId);
-    if (!seller) throw new AppError(404, "Seller does not exist");
+    const seller = await userService.getProfile(sellerId);
+    // if (!seller) throw new AppError(404, "Seller does not exist");
 
     const newEndsAt =
       data.endsAt instanceof Date
@@ -340,8 +337,8 @@ export class AuctionService {
   }
 
   async cancelAuction(auctionId: string, sellerId: string) {
-    const seller = await userRepository.findById(sellerId);
-    if (!seller) throw new AppError(404, "Seller does not exist");
+    const seller = await userService.getProfile(sellerId);
+    // if (!seller) throw new AppError(404, "Seller does not exist");
 
     return await prisma.$transaction(async (tx) => {
       const auction = await tx.auction.findUnique({

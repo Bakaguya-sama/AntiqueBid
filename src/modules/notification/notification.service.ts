@@ -1,16 +1,15 @@
 import { notificationRepository } from "@/repositories/notification.repo";
-import { userRepository } from "@/repositories/user.repo";
 import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import { NotificationScope, NotificationType } from "generated/prisma/enums";
 import { getIO } from "@/config/socket.config";
+import { userService } from "../user/user.service";
 
 export class NotificationService {
   async getOneNotificationById(id: string, userId: string) {
-    const existingUser = await userRepository.findById(userId);
-
-    if (!existingUser || existingUser.deletedAt)
-      throw new AppError(400, "This user does not exist");
+    const existingUser = await userService.getProfile(userId);
+    // if (!existingUser || existingUser.deletedAt)
+    //   throw new AppError(400, "This user does not exist");
 
     const existingNoti = await notificationRepository.findNotificationById(
       id,
@@ -30,19 +29,17 @@ export class NotificationService {
   }
 
   async getNotificationsByUser(userId: string, filter: paginationInput) {
-    const existingUser = await userRepository.findById(userId);
-
-    if (!existingUser || existingUser.deletedAt)
-      throw new AppError(400, "This user does not exist");
+    const existingUser = await userService.getProfile(userId);
+    // if (!existingUser || existingUser.deletedAt)
+    //   throw new AppError(400, "This user does not exist");
 
     return await notificationRepository.findNotificationsByUser(userId, filter);
   }
 
   async markOneNotificationRead(id: string, userId: string) {
-    const existingUser = await userRepository.findById(userId);
-
-    if (!existingUser || existingUser.deletedAt)
-      throw new AppError(400, "This user does not exist");
+    const existingUser = await userService.getProfile(userId);
+    // if (!existingUser || existingUser.deletedAt)
+    //   throw new AppError(400, "This user does not exist");
 
     const existingNoti = await notificationRepository.findNotificationById(
       id,
@@ -79,10 +76,9 @@ export class NotificationService {
   }
 
   async markManyNotificationsRead(ids: Array<string>, userId: string) {
-    const existingUser = await userRepository.findById(userId);
-
-    if (!existingUser || existingUser.deletedAt)
-      throw new AppError(400, "This user does not exist");
+    const existingUser = await userService.getProfile(userId);
+    // if (!existingUser || existingUser.deletedAt)
+    //   throw new AppError(400, "This user does not exist");
 
     const existingNotis =
       await notificationRepository.findManyNotificationByIds(ids);
@@ -127,13 +123,12 @@ export class NotificationService {
     type: NotificationType,
     meta?: Record<string, unknown>,
   ) {
-    const existingUser = await userRepository.findById(userId);
-
-    if (!existingUser || existingUser.deletedAt)
-      throw new AppError(
-        400,
-        "The recipient of this notification does not exist",
-      );
+    const existingUser = await userService.getProfile(userId);
+    // if (!existingUser || existingUser.deletedAt)
+    //   throw new AppError(
+    //     400,
+    //     "The recipient of this notification does not exist",
+    //   );
 
     const noti = await notificationRepository.createNotification(
       title,
@@ -194,7 +189,7 @@ export class NotificationService {
     type: NotificationType,
     meta?: Record<string, unknown>,
   ) {
-    const existingUsers = await userRepository.findByManyIds(userIds);
+    const existingUsers = await userService.getManyUsers(userIds);
 
     const foundIds = existingUsers.map((user) => user.id);
 
@@ -231,10 +226,9 @@ export class NotificationService {
   }
 
   async countUnreadNotifications(userId: string) {
-    const existingUser = await userRepository.findById(userId);
-
-    if (!existingUser || existingUser.deletedAt)
-      throw new AppError(400, "This user does not exist");
+    const existingUser = await userService.getProfile(userId);
+    // if (!existingUser || existingUser.deletedAt)
+    //   throw new AppError(400, "This user does not exist");
 
     return await notificationRepository.countUnreadNotificationsByUserId(
       userId,

@@ -1,10 +1,10 @@
 import { antiqueRepository } from "@/repositories/antique.repo";
-import { userRepository } from "@/repositories/user.repo";
 import { paginationInput } from "@/types/pagination.types";
 import { AppError } from "@/utils/app-error.utils";
 import { Prisma } from "generated/prisma/client";
 import { antiqueCacheService } from "@/services/redis/antique-cache.service";
 import { antiqueCategoryService } from "../antique-category/antique-category.service";
+import { userService } from "../user/user.service";
 
 export class AntiqueService {
   async createAntique(
@@ -73,8 +73,8 @@ export class AntiqueService {
   async deleteAntique(antiqueId: string, creatorId: string) {
     if (!creatorId) throw new AppError(401, "Empty creatorId");
 
-    const existingCreator = await userRepository.findById(creatorId);
-    if (!existingCreator) throw new AppError(401, "Creator does not exist");
+    const existingCreator = await userService.getProfile(creatorId);
+    // if (!existingCreator) throw new AppError(401, "Creator does not exist");
 
     const existingAntique = await antiqueRepository.findById(antiqueId);
     if (!existingAntique) throw new AppError(404, "Antique not found");
@@ -129,12 +129,10 @@ export class AntiqueService {
   }
 
   async getAntiquesByCreator(creatorId: string, filter: paginationInput) {
-    const existingCreator = await userRepository.findById(creatorId);
-
-    if (!existingCreator) throw new AppError(400, "Creator does not exist");
-
-    if (existingCreator.deletedAt)
-      throw new AppError(400, "Creator account is deleted");
+    const existingCreator = await userService.getProfile(creatorId);
+    // if (!existingCreator) throw new AppError(400, "Creator does not exist");
+    // if (existingCreator.deletedAt)
+    //   throw new AppError(400, "Creator account is deleted");
 
     const res = await antiqueRepository.findByCreatorID(creatorId, filter);
     return res;

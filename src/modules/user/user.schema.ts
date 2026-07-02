@@ -23,3 +23,19 @@ export const getUserByIdSchema = z.object({
     id: uuidSchema,
   }),
 });
+
+export const getManyUserByIdsSchema = z.object({
+  query: z.object({
+    ids: z.preprocess(
+      (value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.split(",").map((id) => id.trim());
+        }
+
+        return value;
+      },
+      z.array(uuidSchema).min(1, "The query must have at least 1 userId"),
+    ),
+  }),
+});
